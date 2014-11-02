@@ -26,8 +26,7 @@ die() {
 }
 
 tag=lnuy0rbhsijwhi42zpugchabc
-if test x"$1" != x"$tag"
-then
+if [ x"$1" != x"$tag" ]; then
 	# Run with clean environment in order to avoid conflicts with variable
 	# name collisions.
 	set -- "$0" "$tag" "$@"
@@ -58,10 +57,9 @@ mangle_SV() {
 	while off=`expr x"$SV" : x'.*[^A-Za-z0-9_]'`
 	do
 		w=
-		while test $off -gt 2
-		do
+		while [ $off -gt 2 ]; do
 			w=$w"?"
-			off=`expr $off - 1`
+			: $((off-= 1))
 		done
 		head=${SV#$w}; SV=${SV%"$head"}
 		tail=${head#?}; head=${head%"$tail"}
@@ -131,22 +129,21 @@ add_mapping() {
 	unsetvar m_$m
 	rcv=sn_${m#*_}_rc
 	getvar rc $rcv
-	setvar $rcv `expr $rc + 1`
+	setvar $rcv $((rc + 1))
 	test -n "$last_m" && setvar m_"$last_m" "$m"
 	last_m=$m
 }
 
 KEEP=
 DELETE_CONFIG=
-while getopts kd OPT
-do
+while getopts kd OPT; do
 	case $OPT in
 		k) KEEP=Y;;
 		d) DELETE_CONFIG=Y;;
 		*) false
 	esac
 done
-shift `expr $OPTIND - 1`
+shift $((OPTIND - 1))
 
 merge_target=${1:?"Specify merge target file (empty file is allowed)"}
 test -n "$merge_target"
@@ -167,8 +164,7 @@ max_c=0
 first_m=
 last_m=
 lineno=1
-while read kind index line
-do
+while read kind index line; do
 	case $kind in
 		1)
 			SV=$line; mangle_SV
@@ -190,12 +186,11 @@ do
 			;;
 		*) die "Unknown line type '$kind'!"
 	esac
-	lineno=`expr $lineno + 1`
+	: $((lineno+= 1))
 done < "$merge_target"
 
 
-if test -n "$DELETE_CONFIG"
-then
+if [ -n "$DELETE_CONFIG" ]; then
 	deleted=0
 	dmaps=0
 	ncp=first_c
@@ -204,12 +199,10 @@ then
 		getvar ci "$ncp"
 		test -z "$ci" && break
 		getvar cname c_"$ci"
-		if test x"$cname" = x"$title"
-		then
+		if [ x"$cname" = x"$title" ]; then
 			# Delete all associated mappings first.
 			nmp=first_m
-			while :
-			do
+			while true; do
 				getvar m "$nmp"
 				test -z "$m" && break
 				case $m in
@@ -218,8 +211,8 @@ then
 						unsetvar "$m"
 						rcv=sn_${m#*_}_rc
 						getvar rc $rcv
-						setvar $rcv `expr $rc - 1 || :`
-						dmaps=`expr $dmaps + 1`
+						setvar $rcv $((rc - 1))
+						: $((dmaps+= 1))
 						continue
 				esac
 				nmp=m_$m
@@ -227,7 +220,7 @@ then
 			getvar $ncp c_${ci}_next
 			unsetvar c_${ci}
 			unsetvar c_${ci}_ts
-			deleted=`expr $deleted + 1`
+			: $((deleted+= 1))
 			continue
 			
 		fi
@@ -237,7 +230,7 @@ then
 		"have been deleted." >& 2
 else
 	# Add config definition.
-	ci=`expr $max_c + 1`
+	ci=$((max_c + 1))
 	index=$ci
 	cname=$title
 	ts=`date --rfc-3339=seconds`
@@ -245,18 +238,16 @@ else
 
 	# Merge config.
 	lineno=1
-	while read line
-	do
+	while read line; do
 		SV=$line; mangle_SV
 		getvar index s_"$SV"
-		if test -z "$index"
-		then
-			index=`expr $max_sn + 1`
+		if [ -z "$index" ]; then
+			index=$((max_sn + 1))
 			add_setting
 		fi
 		m=${ci}_$index
 		add_mapping
-		lineno=`expr $lineno + 1`
+		: $((lineno+= 1))
 		test -n "$DEBUG" && printf M >& 2
 	done
 fi
@@ -264,8 +255,7 @@ fi
 # Write merged config.
 {
 	index=$first_sn
-	while test -n "$index"
-	do
+	while [ -n "$index" ]; do
 		getvar line sn_"$index"
 		getvar rc sn_"$index"_rc
 		test x"$rc" != x"0" && echo "1 $index $line"
@@ -273,8 +263,7 @@ fi
 		test -n "$DEBUG" && printf 1 >& 2
 	done
 	index=$first_c
-	while test -n "$index"
-	do
+	while [ -n "$index" ]; do
 		getvar cname c_"$index"
 		getvar ts c_"$index"_ts
 		echo "2 $index $ts $cname"
@@ -282,8 +271,7 @@ fi
 		test -n "$DEBUG" && printf 2 >& 2
 	done
 	index=$first_m
-	while test -n "$index"
-	do
+	while [ -n "$index" ]; do
 		echo "3 $index"
 		getvar index m_"$index"
 		test -n "$DEBUG" && printf 3 >& 2
