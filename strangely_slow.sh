@@ -1,6 +1,6 @@
 #! /bin/sh
 set -e
-DEBUG=Y
+DEBUG=
 
 # Variables:
 # s_${ESCAPED_SETTING_VALUE}=${SETTING_NUMBER}
