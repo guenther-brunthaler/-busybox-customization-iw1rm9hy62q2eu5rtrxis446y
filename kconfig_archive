@@ -147,11 +147,11 @@ KEEP=
 DELETE_CONFIG=
 MERGE_CONFIG=
 MODE=list
-while getopts kdm OPT; do
+while getopts kdax OPT; do
 	case $OPT in
 		k) KEEP=Y;;
 		d) MODE=delete;;
-		m) MODE=merge;;
+		a) MODE=merge;;
 		x) MODE=extract;;
 		*) false
 	esac
@@ -160,7 +160,8 @@ shift $((OPTIND - 1))
 
 if [ $MODE = list ]; then
 	test $# -gt 1 && toomany
-	test $# = 1 && exec < "$1" 3>& 1 >& 2
+	test $# = 1 && exec < "$1"
+	exec 3>& 1 >& 2
 	echo "Available configurations:"
 	echo
 	echo "RFC-3339 Timestamp        Name"
@@ -181,9 +182,6 @@ test -n "$title"
 add_config=$3
 test $# -gt 3 && toomany
 test -n "$add_config" && exec < "$add_config"
-
-# Prepare RegExes for whitespace parsing.
-ws=`printf ' \t:'`; ws=${ws%?}; nws="[^$ws]"; ws="[$ws]"
 
 # Read current merge file.
 echo "Warning: This is SLOW! It could take minutes. Please be patient!" >& 2
@@ -218,7 +216,7 @@ if [ $MODE = extract ]; then
 			*) die "Unknown line type '$kind'!"
 		esac
 		: $((lineno+= 1))
-	done | sed "s:^\\(CONFIG_$nws\\+\\)-\$:# \\1 is not set:"
+	done
 else
 	first_c=
 	last_c=
@@ -293,11 +291,7 @@ if [ $MODE = delete ]; then
 elif [ $MODE = merge ]; then
 	# Transforms "not set"-comments into "$TOKEN-"-lines.
 	# Removed all other comments or empty lines.
-	sed "
-		s/^# \\(CONFIG_$nws\\+\\) is not set.*/\\1-/
-		t
-		/^#\\|^$ws*\$/ d
-	" > "$T"
+	grep '^CONFIG_' > "$T"
 
 	# Add config definition.
 	ci=$((max_c + 1))
