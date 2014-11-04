@@ -139,19 +139,39 @@ add_mapping() {
 	last_m=$m
 }
 
+toomany() {
+	die "Too many arguments!"
+}
+
 KEEP=
 DELETE_CONFIG=
 MERGE_CONFIG=
-MODE=extract
+MODE=list
 while getopts kdm OPT; do
 	case $OPT in
 		k) KEEP=Y;;
 		d) MODE=delete;;
 		m) MODE=merge;;
+		x) MODE=extract;;
 		*) false
 	esac
 done
 shift $((OPTIND - 1))
+
+if [ $MODE = list ]; then
+	test $# -gt 1 && toomany
+	test $# = 1 && exec < "$1" 3>& 1 >& 2
+	echo "Available configurations:"
+	echo
+	echo "RFC-3339 Timestamp        Name"
+	echo "------------------------- --------------------------------"
+	sed 's/^2 [1-9][0-9]* //; t; d' >& 3
+	echo
+	echo "(End of list.)"
+	exec 2>& 1 >& 3
+	OK=Y
+	exit
+fi
 
 merge_target=${1:?"Specify merge target file (empty file is allowed)"}
 test -n "$merge_target"
@@ -159,7 +179,7 @@ test -f "$merge_target"
 title=${2:?"Specify title of new config to extract, merge or delete"}
 test -n "$title"
 add_config=$3
-test $# -gt 3 && die "To many arguments!"
+test $# -gt 3 && toomany
 test -n "$add_config" && exec < "$add_config"
 
 # Prepare RegExes for whitespace parsing.
@@ -176,14 +196,14 @@ if [ $MODE = extract ]; then
 	while read kind index line; do
 		case $kind in
 			1)
-				cname=${line#* * }; cname=${cname## }
-				test -n "$cname"
-				test x"$cname" = x"$title" && ci=$index
+				SV=$line; mangle_SV
+				add_setting
 				test -n "$DEBUG" && printf 1 >& 2
 				;;
 			2)
-				SV=$line; mangle_SV
-				add_setting
+				cname=${line#* * }; cname=${cname## }
+				test -n "$cname"
+				test x"$cname" = x"$title" && ci=$index
 				test -n "$DEBUG" && printf 2 >& 2
 				;;
 			3)
@@ -208,16 +228,16 @@ else
 	while read kind index line; do
 		case $kind in
 			1)
+				SV=$line; mangle_SV
+				add_setting
+				test -n "$DEBUG" && printf 1 >& 2
+				;;
+			2)
 				cname=${line#* * }; cname=${cname## }
 				ts=${line%"$cname"}; ts=${ts%% }
 				test -n "$ts"
 				test -n "$cname"
 				add_config
-				test -n "$DEBUG" && printf 1 >& 2
-				;;
-			2)
-				SV=$line; mangle_SV
-				add_setting
 				test -n "$DEBUG" && printf 2 >& 2
 				;;
 			3)
@@ -305,20 +325,20 @@ fi
 if [ $MODE != extract ]; then
 	# Write merged config.
 	{
-		index=$first_c
-		while [ -n "$index" ]; do
-			getvar cname c_"$index"
-			getvar ts c_"$index"_ts
-			echo "1 $index $ts $cname"
-			getvar index c_"$index"_next
-			test -n "$DEBUG" && printf 1 >& 2
-		done
 		index=$first_sn
 		while [ -n "$index" ]; do
 			getvar line sn_"$index"
 			getvar rc sn_"$index"_rc
-			test x"$rc" != x"0" && echo "2 $index $line"
+			test x"$rc" != x"0" && echo "1 $index $line"
 			getvar index sn_"$index"_next
+			test -n "$DEBUG" && printf 1 >& 2
+		done
+		index=$first_c
+		while [ -n "$index" ]; do
+			getvar cname c_"$index"
+			getvar ts c_"$index"_ts
+			echo "2 $index $ts $cname"
+			getvar index c_"$index"_next
 			test -n "$DEBUG" && printf 2 >& 2
 		done
 		index=$first_m
