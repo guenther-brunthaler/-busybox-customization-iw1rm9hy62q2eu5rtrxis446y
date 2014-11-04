@@ -147,11 +147,12 @@ KEEP=
 DELETE_CONFIG=
 MERGE_CONFIG=
 MODE=list
-while getopts kdax OPT; do
+while getopts krda OPT; do
 	case $OPT in
 		k) KEEP=Y;;
 		d) MODE=delete;;
 		a) MODE=merge;;
+		u) MODE=update;;
 		x) MODE=extract;;
 		*) false
 	esac
@@ -253,9 +254,10 @@ else
 fi < "$merge_target"
 
 
-if [ $MODE = delete ]; then
+if [ $MODE = delete -o $MODE = update ]; then
 	deleted=0
 	dmaps=0
+	first_deleted=
 	ncp=first_c
 	while :
 	do
@@ -264,6 +266,7 @@ if [ $MODE = delete ]; then
 		getvar cname c_"$ci"
 		if [ x"$cname" = x"$title" ]; then
 			# Delete all associated mappings first.
+			test -n "$first_deleted" && first_deleted=$ci
 			nmp=first_m
 			while true; do
 				getvar m "$nmp"
@@ -291,7 +294,8 @@ if [ $MODE = delete ]; then
 	done
 	echo "$deleted configurations with $dmaps mappings" \
 		"have been deleted." >& 2
-elif [ $MODE = merge ]; then
+fi
+if [ $MODE = merge -o $MODE = update ]; then
 	# Transforms "not set"-comments into "$TOKEN-"-lines.
 	# Removed all other comments or empty lines.
 	sed "
@@ -301,13 +305,18 @@ elif [ $MODE = merge ]; then
 	" > "$T"
 
 	# Add config definition.
-	ci=$((max_c + 1))
+	if [ $MODE = update -a -n "$first_deleted" ]; then
+		ci=$first_deleted
+	else
+		ci=$((max_c + 1))
+	fi
 	index=$ci
 	cname=$title
 	ts=`date --rfc-3339=seconds`
 	add_config
 
 	# Merge config.
+	amaps=0
 	lineno=1
 	while read line; do
 		SV=$line; mangle_SV
@@ -318,9 +327,11 @@ elif [ $MODE = merge ]; then
 		fi
 		m=${ci}_$index
 		add_mapping
-		: $((lineno+= 1))
+		: $((lineno+= 1)) $((amaps+= 1))
 		test -n "$DEBUG" && printf M >& 2
 	done < "$T"
+	echo "1 configuration with $amaps mappings" \
+		"has been added." >& 2
 fi
 
 if [ $MODE != extract ]; then
