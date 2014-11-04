@@ -3,3 +3,4 @@ busybox-1.21.0-mdev.patch
 busybox-1.21.0-platform.patch
 busybox-1.21.0-xz.patch
 busybox-ginit.patch
+busybox-reloc-inittab.patch
