@@ -1,9 +1,0 @@
-#! /bin/sh
-# Transforms "not set"-comments into "$TOKEN-"-lines.
-# Removed all other comments or empty lines.
-ws=`printf ' \t:'`; ws=${ws%?}; nws="[^$ws]"; ws="[$ws]"
-sed "
-	s/^# \\(CONFIG_$nws\\+\\) is not set.*/\\1-/
-	t
-	/^#\\|^$ws*\$/ d
-" "${1?:"Config file to extract from?"}" | LC_COLLATE=C sort
