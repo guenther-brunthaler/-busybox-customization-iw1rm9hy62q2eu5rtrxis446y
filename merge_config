@@ -141,10 +141,13 @@ add_mapping() {
 
 KEEP=
 DELETE_CONFIG=
-while getopts kd OPT; do
+MERGE_CONFIG=
+MODE=extract
+while getopts kdm OPT; do
 	case $OPT in
 		k) KEEP=Y;;
-		d) DELETE_CONFIG=Y;;
+		d) MODE=delete;;
+		m) MODE=merge;;
 		*) false
 	esac
 done
@@ -153,49 +156,80 @@ shift $((OPTIND - 1))
 merge_target=${1:?"Specify merge target file (empty file is allowed)"}
 test -n "$merge_target"
 test -f "$merge_target"
-title=${2:?"Specify title of new config to merge or delete"}
+title=${2:?"Specify title of new config to extract, merge or delete"}
 test -n "$title"
 add_config=$3
 test $# -gt 3 && die "To many arguments!"
 test -n "$add_config" && exec < "$add_config"
 
 # Read current merge file.
+echo "Warning: This is SLOW! It could take minutes. Please be patient!" >& 2
 first_sn=
 last_sn=
 max_sn=0
-first_c=
-last_c=
-max_c=0
-first_m=
-last_m=
 lineno=1
-while read kind index line; do
-	case $kind in
-		1)
-			cname=${line#* * }; cname=${cname## }
-			ts=${line%"$cname"}; ts=${ts%% }
-			test -n "$ts"
-			test -n "$cname"
-			add_config
-			test -n "$DEBUG" && printf 2 >& 2
-			;;
-		2)
-			SV=$line; mangle_SV
-			add_setting
-			test -n "$DEBUG" && printf 1 >& 2
-			;;
-		3)
-			m=${index}_$line
-			add_mapping
-			test -n "$DEBUG" && printf 3 >& 2
-			;;
-		*) die "Unknown line type '$kind'!"
-	esac
-	: $((lineno+= 1))
-done < "$merge_target"
+if [ $MODE = extract ]; then
+	ci=
+	while read kind index line; do
+		case $kind in
+			1)
+				cname=${line#* * }; cname=${cname## }
+				test -n "$cname"
+				test x"$cname" = x"$title" && ci=$index
+				test -n "$DEBUG" && printf 1 >& 2
+				;;
+			2)
+				SV=$line; mangle_SV
+				add_setting
+				test -n "$DEBUG" && printf 2 >& 2
+				;;
+			3)
+				test x"$index" != x"$ci" && continue
+				s=
+				getvar s sn_$line
+				test -n "$s" || die "Reference to undefined" \
+					"setting '$line' in line $lineno!"
+				printf '%s\n' "$s"
+				test -n "$DEBUG" && printf 3 >& 2
+				;;
+			*) die "Unknown line type '$kind'!"
+		esac
+		: $((lineno+= 1))
+	done
+else
+	first_c=
+	last_c=
+	max_c=0
+	first_m=
+	last_m=
+	while read kind index line; do
+		case $kind in
+			1)
+				cname=${line#* * }; cname=${cname## }
+				ts=${line%"$cname"}; ts=${ts%% }
+				test -n "$ts"
+				test -n "$cname"
+				add_config
+				test -n "$DEBUG" && printf 1 >& 2
+				;;
+			2)
+				SV=$line; mangle_SV
+				add_setting
+				test -n "$DEBUG" && printf 2 >& 2
+				;;
+			3)
+				m=${index}_$line
+				add_mapping
+				test -n "$DEBUG" && printf 3 >& 2
+				;;
+			*) die "Unknown line type '$kind'!"
+		esac
+		: $((lineno+= 1))
+	done
+fi < "$merge_target"
 
 
-if [ -n "$DELETE_CONFIG" ]; then
+if [ $MODE = delete ]; then
 	deleted=0
 	dmaps=0
 	ncp=first_c
@@ -233,7 +267,7 @@ if [ -n "$DELETE_CONFIG" ]; then
 	done
 	echo "$deleted configurations with $dmaps mappings" \
 		"have been deleted." >& 2
-else
+elif [ $MODE = merge ]; then
 	# Add config definition.
 	ci=$((max_c + 1))
 	index=$ci
@@ -257,37 +291,39 @@ else
 	done
 fi
 
-# Write merged config.
-{
-	index=$first_c
-	while [ -n "$index" ]; do
-		getvar cname c_"$index"
-		getvar ts c_"$index"_ts
-		echo "1 $index $ts $cname"
-		getvar index c_"$index"_next
-		test -n "$DEBUG" && printf 1 >& 2
-	done
-	index=$first_sn
-	while [ -n "$index" ]; do
-		getvar line sn_"$index"
-		getvar rc sn_"$index"_rc
-		test x"$rc" != x"0" && echo "2 $index $line"
-		getvar index sn_"$index"_next
-		test -n "$DEBUG" && printf 2 >& 2
-	done
-	index=$first_m
-	while [ -n "$index" ]; do
-		echo "3 $index"
-		getvar index m_"$index"
-		test -n "$DEBUG" && printf 3 >& 2
-	done | tr _ " "
-} | sort -n -k1 -k2 -k3 > "$T"
-test -n "$DEBUG" && echo
-# Rename written config replacing original.
-mode=`stat -c %a -- "$merge_target"`
-tn=${merge_target}.orig
-mv -- "$merge_target" "$tn"
-cat -- "$T" > "$merge_target"
-chmod -- $mode "$merge_target"
-test -z "$KEEP" && rm -- "$tn"
+if [ $MODE != extract ]; then
+	# Write merged config.
+	{
+		index=$first_c
+		while [ -n "$index" ]; do
+			getvar cname c_"$index"
+			getvar ts c_"$index"_ts
+			echo "1 $index $ts $cname"
+			getvar index c_"$index"_next
+			test -n "$DEBUG" && printf 1 >& 2
+		done
+		index=$first_sn
+		while [ -n "$index" ]; do
+			getvar line sn_"$index"
+			getvar rc sn_"$index"_rc
+			test x"$rc" != x"0" && echo "2 $index $line"
+			getvar index sn_"$index"_next
+			test -n "$DEBUG" && printf 2 >& 2
+		done
+		index=$first_m
+		while [ -n "$index" ]; do
+			echo "3 $index"
+			getvar index m_"$index"
+			test -n "$DEBUG" && printf 3 >& 2
+		done | tr _ " "
+	} | sort -n -k1 -k2 -k3 > "$T"
+	test -n "$DEBUG" && echo
+	# Rename written config replacing original.
+	mode=`stat -c %a -- "$merge_target"`
+	tn=${merge_target}.orig
+	mv -- "$merge_target" "$tn"
+	cat -- "$T" > "$merge_target"
+	chmod -- $mode "$merge_target"
+	test -z "$KEEP" && rm -- "$tn"
+fi
 OK=Y
