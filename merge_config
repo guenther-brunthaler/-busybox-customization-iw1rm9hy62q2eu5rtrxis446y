@@ -1,6 +1,6 @@
 #! /bin/sh
 set -e
-DEBUG=Y
+DEBUG=
 
 # Variables:
 # s_${ESCAPED_SETTING_VALUE}=${SETTING_NUMBER}
@@ -16,9 +16,9 @@ DEBUG=Y
 # Merged file format (numerically sorted by first 2 fields):
 # 1 <SETTING_NUMBER> <SETTING_VALUE>
 # ...
-# 2 <CONFIG_NUMBER> <RFC3339_DATE> <RFC3339_TIME> <CONFIG_NAME>
+# 2 <CONFIG_NUMBER> <SETTING_NUMBER>
 # ...
-# 3 <CONFIG_NUMBER> <SETTING_NUMBER>
+# 3 <CONFIG_NUMBER> <RFC3339_DATE> <RFC3339_TIME> <CONFIG_NAME>
 # ...
 
 die() {
@@ -172,17 +172,17 @@ lineno=1
 while read kind index line; do
 	case $kind in
 		1)
-			SV=$line; mangle_SV
-			add_setting
-			test -n "$DEBUG" && printf 1 >& 2
-			;;
-		2)
 			cname=${line#* * }; cname=${cname## }
 			ts=${line%"$cname"}; ts=${ts%% }
 			test -n "$ts"
 			test -n "$cname"
 			add_config
 			test -n "$DEBUG" && printf 2 >& 2
+			;;
+		2)
+			SV=$line; mangle_SV
+			add_setting
+			test -n "$DEBUG" && printf 1 >& 2
 			;;
 		3)
 			m=${index}_$line
@@ -259,20 +259,20 @@ fi
 
 # Write merged config.
 {
-	index=$first_sn
-	while [ -n "$index" ]; do
-		getvar line sn_"$index"
-		getvar rc sn_"$index"_rc
-		test x"$rc" != x"0" && echo "1 $index $line"
-		getvar index sn_"$index"_next
-		test -n "$DEBUG" && printf 1 >& 2
-	done
 	index=$first_c
 	while [ -n "$index" ]; do
 		getvar cname c_"$index"
 		getvar ts c_"$index"_ts
-		echo "2 $index $ts $cname"
+		echo "1 $index $ts $cname"
 		getvar index c_"$index"_next
+		test -n "$DEBUG" && printf 1 >& 2
+	done
+	index=$first_sn
+	while [ -n "$index" ]; do
+		getvar line sn_"$index"
+		getvar rc sn_"$index"_rc
+		test x"$rc" != x"0" && echo "2 $index $line"
+		getvar index sn_"$index"_next
 		test -n "$DEBUG" && printf 2 >& 2
 	done
 	index=$first_m
