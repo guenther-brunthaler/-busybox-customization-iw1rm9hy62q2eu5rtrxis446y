@@ -147,7 +147,7 @@ KEEP=
 DELETE_CONFIG=
 MERGE_CONFIG=
 MODE=list
-while getopts krda OPT; do
+while getopts krdax OPT; do
 	case $OPT in
 		k) KEEP=Y;;
 		d) MODE=delete;;
