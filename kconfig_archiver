@@ -1,4 +1,103 @@
 #! /bin/sh
+exit_version() {
+wr -s <<- . && OK=Y && exit
+	$APP version 14.325
+
+	(c) 2014 by Guenther Brunthaler.
+	This script is free software.
+	Distribution is permitted under the terms of the GPLv3.
+.
+}
+APP=${0##*/}
+
+exit_help() {
+        wr <<- .
+	$APP - import or export Linux kernel-style .config files
+	
+	Usage: $APP [ <options> ... ] <archive> [ <title> ]
+
+	$APP is a utility to which can import .config files and merge the
+	contents of multiple such files into a single archive, or extract a
+	specified .config file from such an archive.
+	
+	The archive is a human-readable text file, structured similar to a
+	normalized SQL database (i. e. using joined tables to avoid
+	duplication of values).
+	
+	The .config files must comply with the syntax used by Linux kernel or
+	BusyBox .config files.
+	
+	$APP operates in different modes, and interprets arguments
+	accordingly, depending on which command option has been specified.
+	
+	Without a specific command option, "list" mode is the default.
+	
+	It prints a list of configuration names present in the <archive>.
+	
+	In list mode only, specifing <archive> is optional. It it is not
+	specified, it will be read from standard input instead.
+
+	Options supported:
+
+	-k:
+	    Normally, commands which update <archive> will first rename the
+	    original archive, then create the updated archive based on the
+	    file permissions and contents of the renamed original archive, and
+	    finally delete the renamed original archive. Specifying this
+	    option disables the removal of the original archive, keeping both
+	    the old and the new file versions around.
+
+	-d:
+	    Delete configuration with name <title> from <archive>. This will
+	    delete all settings which are no longer referenced by any of the
+	    remaining configurations.
+
+	-a:
+	    Add the first configuration to the archive or merge another
+	    configuration to an archive.
+	    
+	    <title> is the name of the configuration to be added. The .config
+	    file contents to be added will be read from standard input.
+	    
+	    <archive> must already exist, but can be an empty file if there is
+	    currently no configuration in the archive yet.
+
+	-u:
+	    Update an existing configuration. DO NOT USE!!! It has known bugs
+	    which may corrupt <archive>. Instead, use the this workaround:
+	    
+	    * Edit the archive, locate and rename the old configuration to
+	      some different name (such as by adding ".old"). Also remember
+	      the configuration index number.
+	      
+	    * Use the -a command to add the updated configuration using the
+	      original configuration name.
+	    
+	    * Use the -d command to delete the renamed old configuration.
+	    
+	    * Edit the archive again, replacing the configuration number of
+	      the new entry with the original number. Then replace the new
+	      configuration number in all mappings with the old number.
+
+	-x:
+	    Extract the configuration named <title> from <archive> and print
+	    it to standard output.
+	    
+	    The output will not be completely identical to the formerly
+	    imported .config file due to differently sorted lines, and "make
+	    oldconfig" should be run on the extracted .config file to restore
+	    the expected line ordering.
+
+	-h:
+	    Show this usage help.
+
+	-V:
+	    Show the version of this script.
+
+.
+	exit_version
+}                                           
+
 set -e
 DEBUG=
 
@@ -21,6 +120,12 @@ DEBUG=
 # 3 <CONFIG_NUMBER> <RFC3339_DATE> <RFC3339_TIME> <CONFIG_NAME>
 # ...
 
+wr() {
+	test -z "$*" && set -- -c
+	fmt -w "$LINEWIDTH" "$@"
+}
+LINEWIDTH=; tty -s && LINEWIDTH=`tput cols` || LINEWIDTH=; : ${LINEWIDTH:=66}
+                
 die() {
 	echo "ERROR: $*" >& 2
 	false || exit
@@ -45,7 +150,6 @@ cleanup() {
 	test -z "$OK" && echo "Failed!" >& 2
 }
 OK=
-APP=${0##*/}
 T=`mktemp --tmpdir "$APP".XXXXXXXXXX`
 trap cleanup 0
 
@@ -147,13 +251,15 @@ KEEP=
 DELETE_CONFIG=
 MERGE_CONFIG=
 MODE=list
-while getopts krdax OPT; do
+while getopts hVkrdax OPT; do
 	case $OPT in
 		k) KEEP=Y;;
 		d) MODE=delete;;
 		a) MODE=merge;;
 		u) MODE=update;;
 		x) MODE=extract;;
+		h) exit_help;;
+		V) exit_version;;
 		*) false
 	esac
 done
