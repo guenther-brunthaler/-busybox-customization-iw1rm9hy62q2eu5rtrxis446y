@@ -1,1 +1,2 @@
-busybox-1.21.0.tar.bz2
+/busybox-[0-9]*.tar.bz2
+/busybox-[0-9]*/
