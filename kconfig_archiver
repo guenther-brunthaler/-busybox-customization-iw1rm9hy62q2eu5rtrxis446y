@@ -1,130 +1,89 @@
 #! /bin/sh
 exit_version() {
-wr -s <<- . && OK=Y && exit
-	$APP version 14.325
+wr -s <<- . && exit
+	$APP version 15.216
 
-	(c) 2014 by Guenther Brunthaler.
+	(c) 2014 - 2015 by Guenther Brunthaler.
 	This script is free software.
 	Distribution is permitted under the terms of the GPLv3.
 .
 }
 APP=${0##*/}
 
+set -e
+DEFAULT_FILES_DIR=./config
+LOCATE_COMMAND="ls -1 --"
+
 exit_help() {
+	files='Linux Kernel / BusyBox .config files'
         wr <<- .
-	$APP - import or export Linux kernel-style .config files
+	$APP - import or export Linux kernel-style $files
 	
-	Usage: $APP [ <options> ... ] <archive> [ <title> ]
+	Usage: $APP [ options ... ] <archive>
 
-	$APP is a utility to which can import .config files and merge the
-	contents of multiple such files into a single archive, or extract a
-	specified .config file from such an archive.
+	$APP is a utility which can import and export $files from/into a
+	special, text-based archive format, which strives to better exploit
+	similarities between the archived $files in order to make the archive
+	shorter than a compressed conventional archive of the same files.
 	
-	The archive is a human-readable text file, structured similar to a
-	normalized SQL database (i. e. using joined tables to avoid
-	duplication of values).
+	Actually, $APP is not only well-suited for archiving $files, but for
+	any type of text files as well where there are a lot of duplicate
+	lines (although in different places) expected to be found in the
+	combined files to be archived.
 	
-	The .config files must comply with the syntax used by Linux kernel or
-	BusyBox .config files.
+	The archive files maintained by $APP are also especially friendly for
+	version control systems by resulting in deltas as small as possible
+	when .config files are added to the archive, removed from it, or
+	modified.
 	
-	$APP operates in different modes, and interprets arguments
-	accordingly, depending on which command option has been specified.
+	$APP stores no metadata about the archived files except for the
+	basenames (and of course the contents). If modification or creation
+	dates of the files are important, they should be included as part of
+	the file names.
 	
-	Without a specific command option, "list" mode is the default.
-	
-	It prints a list of configuration names present in the <archive>.
-	
-	In list mode only, specifing <archive> is optional. It it is not
-	specified, it will be read from standard input instead.
-
 	Options supported:
 
-	-k:
-	    Normally, commands which update <archive> will first rename the
-	    original archive, then create the updated archive based on the
-	    file permissions and contents of the renamed original archive, and
-	    finally delete the renamed original archive. Specifying this
-	    option disables the removal of the original archive, keeping both
-	    the old and the new file versions around.
-
-	-d:
-	    Delete configuration with name <title> from <archive>. This will
-	    delete all settings which are no longer referenced by any of the
-	    remaining configurations.
-
-	-a:
-	    Add the first configuration to the archive or merge another
-	    configuration to an archive.
-	    
-	    <title> is the name of the configuration to be added. The .config
-	    file contents to be added will be read from standard input.
-	    
-	    <archive> must already exist, but can be an empty file if there is
-	    currently no configuration in the archive yet.
-
-	-u:
-	    Update an existing configuration. DO NOT USE!!! It has known bugs
-	    which may corrupt <archive>. Instead, use the this workaround:
-	    
-	    * Edit the archive, locate and rename the old configuration to
-	      some different name (such as by adding ".old"). Also remember
-	      the configuration index number.
-	      
-	    * Use the -a command to add the updated configuration using the
-	      original configuration name.
-	    
-	    * Use the -d command to delete the renamed old configuration.
-	    
-	    * Edit the archive again, replacing the configuration number of
-	      the new entry with the original number. Then replace the new
-	      configuration number in all mappings with the old number.
-
-	-x:
-	    Extract the configuration named <title> from <archive> and print
-	    it to standard output.
-	    
-	    The output will not be completely identical to the formerly
-	    imported .config file due to differently sorted lines, and "make
-	    oldconfig" should be run on the extracted .config file to restore
-	    the expected line ordering.
-
+	-c, -i:
+	   Create the archive from all files found in the $DEFAULT_FILES_DIR
+	   directory, which must exist and contain at least one file to be
+	   archived. Does not support subdirectories. Uses "$LOCATE_COMMAND
+	   $DEFAULT_FILES_DIR" to locate the files, so files hidden from the
+	   shell will not be included. <archive> must not exist yet and will
+	   not be overwritten.
+	-x, -e:
+	   Extract the contents of the archive into directory
+	   $DEFAULT_FILES_DIR which will be created if it does not exist. The
+	   files to be extracted must not exist yet and will not be
+	   overwritten.
+	-f:
+	   Force output files which already exist to be overwritten instead of
+	   refusing to do so.
+	-P:
+	   Purge "$DEFAULT_FILES_DIR", if it exists, before starting file
+	   extraction.
+	-d <directory>:
+	   Modify the operation of $APP so that it uses <directory> instead of
+	   $DEFAULT_FILES_DIR for storing/retrieving the files contained in
+	   the archive.
 	-h:
-	    Show this usage help.
-
+	   Show this usage help.
 	-V:
-	    Show the version of this script.
+	   Show the version of this script.
 
 .
 	exit_version
 }                                           
 
-set -e
-DEBUG=
-
-# Variables:
-# s_${ESCAPED_SETTING_VALUE}=${SETTING_NUMBER}
-# sn_${SETTING_NUMBER}=${SETTING_VALUE}
-# sn_${SETTING_NUMBER}_rc=${MAPPINGS_REF_COUNT}
-# sn_${SETTING_NUMBER}_next=${NEXT_SETTING_NUMBER_OR_UNDEF}
-# c_${CONFIG_NUMBER}=${CONFIG_NAME}
-# c_${CONFIG_NUMBER}_ts=`date -d "$WHEN_CREATED" --rfc-3339=seconds`
-# c_${CONFIG_NUMBER}_next=${NEXT_CONFIG_NUMBER_OR_UNDEF}
-# m_${CONFIG_NUMBER}_${SETTING_NUMBER}=${NEXT_MAPPING_KEY_OR_UNDEF}
-# q_${LENGTH}=duplicate("?", LENGTH - 1)
-
-# Merged file format (numerically sorted by first 2 fields):
-# 1 <SETTING_NUMBER> <SETTING_VALUE>
-# ...
-# 2 <CONFIG_NUMBER> <SETTING_NUMBER>
-# ...
-# 3 <CONFIG_NUMBER> <RFC3339_DATE> <RFC3339_TIME> <CONFIG_NAME>
-# ...
-
+# A study has found this to be the optimal line width for human readers.
+DEFAULT_LINEWIDTH=66
+MAX_LINEWIDTH=100 # Wider lines are considered too hard to read.
 wr() {
 	test -z "$*" && set -- -c
 	fmt -w "$LINEWIDTH" "$@"
 }
-LINEWIDTH=; tty -s && LINEWIDTH=`tput cols` || LINEWIDTH=; : ${LINEWIDTH:=66}
+LINEWIDTH=; test -t 0 && LINEWIDTH=`tput cols` || LINEWIDTH=;
+test ${LINEWIDTH:-$DEFAULT_LINEWIDTH} -gt $MAX_LINEWIDTH \
+	&& LINEWIDTH=$MAX_LINEWIDTH
                 
 die() {
 	echo "ERROR: $*" >& 2
@@ -132,347 +91,34 @@ die() {
 }
 
 tag=lnuy0rbhsijwhi42zpugchabc
-if [ x"$1" != x"$tag" ]; then
-	# Run with clean environment in order to avoid conflicts with variable
-	# name collisions.
-	set -- "$0" "$tag" "$@"
-	test -n "$-" && set -- -"$-" "$@"
-	set -- "${SHELL:-/bin/sh}" "$@"
-	set env -i TERM="$TERM" PATH="$PATH" "$@"
-	exec "$@"
-	die "Could not re-exec '$@'!"
-fi
-shift
 
 cleanup() {
-	test -n "$DEBUG" && set > set.txt
+	local rc=$?
 	rm -- "$T"
-	test -z "$OK" && echo "Failed!" >& 2
+	test $rc = 0 || echo "$APP failed!" >& 2
 }
-OK=
-T=`mktemp --tmpdir "$APP".XXXXXXXXXX`
+T=`mktemp "${TMPDIR:-/tmp}/$APP".XXXXXXXXXX`
 trap cleanup 0
 
-# Double all literal "Q"s.
-# Pass literally all remaining alphanumerics and underscore.
-# Transform all other characters into "Q" followed by 2-digit codepoint.
-mangle_SV() {
-	local w head tail off v
-	SV=`printf %s "$SV" | sed 's/Q/QQ/g'`
-	while off=`expr x"$SV" : x'.*[^A-Za-z0-9_]'`
-	do
-		v=q_$off
-		getvar w $v
-		if [ -z "$w" ]; then
-			while [ $off -gt 2 ]; do
-				w=$w"?"
-				: $((off-= 1))
-			done
-			getvar $v w
-		fi
-		head=${SV#$w}; SV=${SV%"$head"}
-		tail=${head#?}; head=${head%"$tail"}
-		head=`
-			printf '%s' "$head" | od -tx1 | {
-				read dummy hex; echo Q$hex
-			}
-		`
-		SV=$SV$head$tail
-	done
+missing_command() {
+	die "Missing a command option!"
 }
 
-# $1=\$$2
-getvar() {
-	eval "$1=\$$2"
-}
-
-# $1=$2
-setvar() {
-	local v_4i96tzfs9l3exrb3v5a0upu8v_1
-	v_4i96tzfs9l3exrb3v5a0upu8v_1=$2
-	getvar "$1" v_4i96tzfs9l3exrb3v5a0upu8v_1
-}
-
-# test -z "\$$1" test -n "$2" && $1=$2
-setnewvar() {
-	local v_4i96tzfs9l3exrb3v5a0upu8v_2
-	eval "v_4i96tzfs9l3exrb3v5a0upu8v_2=\$$1"
-	test -z "$v_4i96tzfs9l3exrb3v5a0upu8v_2" || die "Duplicate value" \
-		"in line $lineno (variable '$1' already set)!"
-	test -n "$2" || die "Attempt to set empty value" \
-		"in line $lineno (for variable '$1')!"
-	v_4i96tzfs9l3exrb3v5a0upu8v_2=$2
-	getvar "$1" v_4i96tzfs9l3exrb3v5a0upu8v_2
-}
-
-unsetvar() {
-	unset $* 2> /dev/null || :
-}
-
-# Use $first_sn, $last_sn, $max_sn, $SV, $index, $line.
-add_setting() {
-	test -z "$first_sn" && first_sn=$index
-	setnewvar s_"$SV" "$index"
-	setnewvar sn_"$index" "$line"
-	setnewvar sn_"$index"_rc 0
-	test -n "$last_sn" && setvar sn_"$last_sn"_next "$index"
-	last_sn=$index
-	test $index -gt $max_sn && max_sn=$index
-}
-
-# Use $first_c, $last_c, $max_c, $index, $cname, $ts.
-add_config() {
-	test -z "$first_c" && first_c=$index
-	setnewvar c_"$index" "$cname"
-	setnewvar c_"$index"_ts "$ts"
-	unsetvar c_"$index"_next
-	test -n "$last_c" && setvar c_"$last_c"_next "$index"
-	last_c=$index
-	test $index -gt $max_c && max_c=$index
-}
-
-# Use $first_m, $last_m, $m.
-add_mapping() {
-	local rc rcv
-	test -z "$first_m" && first_m=$m
-	unsetvar m_$m
-	rcv=sn_${m#*_}_rc
-	getvar rc $rcv
-	setvar $rcv $((rc + 1))
-	test -n "$last_m" && setvar m_"$last_m" "$m"
-	last_m=$m
-}
-
-toomany() {
-	die "Too many arguments!"
-}
-
-KEEP=
-DELETE_CONFIG=
-MERGE_CONFIG=
-MODE=list
-while getopts hVkrdax OPT; do
+OVERWRITE=false
+PURGE=false
+action=missing_command
+FILES_DIR=$DEFAULT_FILES_DIR
+while getopts cixedPf:hV OPT; do
 	case $OPT in
-		k) KEEP=Y;;
-		d) MODE=delete;;
-		a) MODE=merge;;
-		u) MODE=update;;
-		x) MODE=extract;;
-		h) exit_help;;
-		V) exit_version;;
+		c | i) action=import;;
+		x | e) action=export;;
+		d) test -n "$OPTARG"; $FILES_DIR=$OPTARG;;
+		f) OVERWRITE=true;;
+		P) PURGE=true;;
+		h) action=exit_help;;
+		V) action=exit_version;;
 		*) false
 	esac
 done
-shift $((OPTIND - 1))
-
-if [ $MODE = list ]; then
-	test $# -gt 1 && toomany
-	test $# = 1 && exec < "$1"
-	exec 3>& 1 >& 2
-	echo "Available configurations:"
-	echo
-	echo "RFC-3339 Timestamp        Name"
-	echo "------------------------- --------------------------------"
-	sed 's/^2 [1-9][0-9]* //; t; d' >& 3
-	echo
-	echo "(End of list.)"
-	exec 2>& 1 >& 3
-	OK=Y
-	exit
-fi
-
-merge_target=${1:?"Specify merge target file (empty file is allowed)"}
-test -n "$merge_target"
-test -f "$merge_target"
-title=${2:?"Specify title of new config to extract, merge or delete"}
-test -n "$title"
-add_config=$3
-test $# -gt 3 && toomany
-test -n "$add_config" && exec < "$add_config"
-
-# Prepare RegExes for whitespace parsing.
-ws=`printf ' \t:'`; ws=${ws%?}; nws="[^$ws]"; ws="[$ws]"
-
-# Read current merge file.
-echo "Warning: This is SLOW! It could take minutes. Please be patient!" >& 2
-first_sn=
-last_sn=
-max_sn=0
-lineno=1
-if [ $MODE = extract ]; then
-	ci=
-	while read kind index line; do
-		case $kind in
-			1)
-				SV=$line; mangle_SV
-				add_setting
-				test -n "$DEBUG" && printf 1 >& 2
-				;;
-			2)
-				cname=${line#* * }; cname=${cname## }
-				test -n "$cname"
-				test x"$cname" = x"$title" && ci=$index
-				test -n "$DEBUG" && printf 2 >& 2
-				;;
-			3)
-				test x"$index" != x"$ci" && continue
-				s=
-				getvar s sn_$line
-				test -n "$s" || die "Reference to undefined" \
-					"setting '$line' in line $lineno!"
-				printf '%s\n' "$s"
-				test -n "$DEBUG" && printf 3 >& 2
-				;;
-			*) die "Unknown line type '$kind'!"
-		esac
-		: $((lineno+= 1))
-	done | sed "s:^\\(CONFIG_$nws\\+\\)-\$:# \\1 is not set:"
-else
-	first_c=
-	last_c=
-	max_c=0
-	first_m=
-	last_m=
-	while read kind index line; do
-		case $kind in
-			1)
-				SV=$line; mangle_SV
-				add_setting
-				test -n "$DEBUG" && printf 1 >& 2
-				;;
-			2)
-				cname=${line#* * }; cname=${cname## }
-				ts=${line%"$cname"}; ts=${ts%% }
-				test -n "$ts"
-				test -n "$cname"
-				add_config
-				test -n "$DEBUG" && printf 2 >& 2
-				;;
-			3)
-				m=${index}_$line
-				add_mapping
-				test -n "$DEBUG" && printf 3 >& 2
-				;;
-			*) die "Unknown line type '$kind'!"
-		esac
-		: $((lineno+= 1))
-	done
-fi < "$merge_target"
-
-
-if [ $MODE = delete -o $MODE = update ]; then
-	deleted=0
-	dmaps=0
-	first_deleted=
-	ncp=first_c
-	while :
-	do
-		getvar ci "$ncp"
-		test -z "$ci" && break
-		getvar cname c_"$ci"
-		if [ x"$cname" = x"$title" ]; then
-			# Delete all associated mappings first.
-			test -n "$first_deleted" && first_deleted=$ci
-			nmp=first_m
-			while true; do
-				getvar m "$nmp"
-				test -z "$m" && break
-				case $m in
-					"$ci"_*)
-						getvar $nmp m_"$m"
-						unsetvar "$m"
-						rcv=sn_${m#*_}_rc
-						getvar rc $rcv
-						setvar $rcv $((rc - 1))
-						: $((dmaps+= 1))
-						continue
-				esac
-				nmp=m_$m
-			done
-			getvar $ncp c_${ci}_next
-			unsetvar c_${ci}
-			unsetvar c_${ci}_ts
-			: $((deleted+= 1))
-			continue
-			
-		fi
-		ncp=c_${ci}_next
-	done
-	echo "$deleted configurations with $dmaps mappings" \
-		"have been deleted." >& 2
-fi
-if [ $MODE = merge -o $MODE = update ]; then
-	# Transforms "not set"-comments into "$TOKEN-"-lines.
-	# Removed all other comments or empty lines.
-	sed "
-		s/^# \\(CONFIG_$nws\\+\\) is not set.*/\\1-/
-		t
-		/^#\\|^$ws*\$/ d
-	" > "$T"
-
-	# Add config definition.
-	if [ $MODE = update -a -n "$first_deleted" ]; then
-		ci=$first_deleted
-	else
-		ci=$((max_c + 1))
-	fi
-	index=$ci
-	cname=$title
-	ts=`date --rfc-3339=seconds`
-	add_config
-
-	# Merge config.
-	amaps=0
-	lineno=1
-	while read line; do
-		SV=$line; mangle_SV
-		getvar index s_"$SV"
-		if [ -z "$index" ]; then
-			index=$((max_sn + 1))
-			add_setting
-		fi
-		m=${ci}_$index
-		add_mapping
-		: $((lineno+= 1)) $((amaps+= 1))
-		test -n "$DEBUG" && printf M >& 2
-	done < "$T"
-	echo "1 configuration with $amaps mappings" \
-		"has been added." >& 2
-fi
-
-if [ $MODE != extract ]; then
-	# Write merged config.
-	{
-		index=$first_sn
-		while [ -n "$index" ]; do
-			getvar line sn_"$index"
-			getvar rc sn_"$index"_rc
-			test x"$rc" != x"0" && echo "1 $index $line"
-			getvar index sn_"$index"_next
-			test -n "$DEBUG" && printf 1 >& 2
-		done
-		index=$first_c
-		while [ -n "$index" ]; do
-			getvar cname c_"$index"
-			getvar ts c_"$index"_ts
-			echo "2 $index $ts $cname"
-			getvar index c_"$index"_next
-			test -n "$DEBUG" && printf 2 >& 2
-		done
-		index=$first_m
-		while [ -n "$index" ]; do
-			echo "3 $index"
-			getvar index m_"$index"
-			test -n "$DEBUG" && printf 3 >& 2
-		done | tr _ " "
-	} | sort -n -k1 -k2 -k3 > "$T"
-	test -n "$DEBUG" && echo
-	# Rename written config replacing original.
-	mode=`stat -c %a -- "$merge_target"`
-	tn=${merge_target}.orig
-	mv -- "$merge_target" "$tn"
-	cat -- "$T" > "$merge_target"
-	chmod -- $mode "$merge_target"
-	test -z "$KEEP" && rm -- "$tn"
-fi
-OK=Y
+shift `expr $OPTIND - 1 || :`
+$action
