@@ -1,2 +1,2 @@
-/busybox-[0-9]*.tar.bz2
-/busybox-[0-9]*/
+*.bz2
+/configs/
