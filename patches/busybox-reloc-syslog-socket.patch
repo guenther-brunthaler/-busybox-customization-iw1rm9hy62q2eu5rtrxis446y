@@ -1,0 +1,98 @@
+Provide an option to use a different socket than /dev/log for syslogd. This
+allows syslogd to co-exist with other log daemons, particularly journald.
+
+Index: busybox-1.21.0/sysklogd/Config.src
+===================================================================
+--- busybox-1.21.0.orig/sysklogd/Config.src
++++ busybox-1.21.0/sysklogd/Config.src
+@@ -22,6 +22,36 @@ config SYSLOGD
+ 	  wrong. And something almost always will go wrong if
+ 	  you wait long enough....
+ 
++config DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
++	bool "Act as a systemd syslog forwarding target"
++	default n
++	depends on SYSLOGD
++	help
++	  Make syslogd compatible with journald on a Linux box
++	  under the control of systemd.
++
++	  This makes syslogd listen on the
++	  /run/systemd/journal/syslog UNIX domain socket instead
++	  of /dev/log (where journald is listening). Journald
++	  will then forward its log messages to syslogd's socket.
++
++	  Note that syslog forwarding must be enabled in
++	  journald's configuration, too.
++
++config DEV_LOG_LOCATION_UCHBU01FBI645UUCEFT1W64XN
++	string "Filesystem location of syslogd's UNIX domain socket"
++	default "/dev/log"
++	depends on SYSLOGD && !DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
++	help
++	  Classic syslog daemons on Linux always create the
++	  /dev/log socket in order to listen there for log messages sent
++	  there via the syslog() API.
++
++	  Using a different socket allows co-existence with other
++	  syslog daemons. However, someone needs to forward log
++	  messages to that socket, too, or there will not be
++	  anything to be logged.
++
+ config FEATURE_ROTATE_LOGFILE
+ 	bool "Rotate message files"
+ 	default y
+Index: busybox-1.21.0/sysklogd/syslogd.c
+===================================================================
+--- busybox-1.21.0.orig/sysklogd/syslogd.c
++++ busybox-1.21.0/sysklogd/syslogd.c
+@@ -822,10 +822,17 @@ static NOINLINE int create_socket(void)
+ 	memset(&sunx, 0, sizeof(sunx));
+ 	sunx.sun_family = AF_UNIX;
+ 
+-	/* Unlink old /dev/log or object it points to. */
+-	/* (if it exists, bind will fail) */
+-	strcpy(sunx.sun_path, "/dev/log");
+-	dev_log_name = xmalloc_follow_symlinks("/dev/log");
++#if ENABLE_DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
++	#define LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92 \
++		"/run/systemd/journal/syslog"
++#else
++	#define LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92 \
++		CONFIG_DEV_LOG_LOCATION_UCHBU01FBI645UUCEFT1W64XN
++#endif
++	/* Unlink old LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92 or object it points
++	/* to. (if it exists, bind will fail) */
++	strcpy(sunx.sun_path, LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92);
++	dev_log_name = xmalloc_follow_symlinks(LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92);
+ 	if (dev_log_name) {
+ 		safe_strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
+ 		free(dev_log_name);
+@@ -834,7 +841,7 @@ static NOINLINE int create_socket(void)
+ 
+ 	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
+ 	xbind(sock_fd, (struct sockaddr *) &sunx, sizeof(sunx));
+-	chmod("/dev/log", 0666);
++	chmod(LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92, 0666);
+ 
+ 	return sock_fd;
+ }
+@@ -905,7 +912,7 @@ static void do_syslogd(void)
+ 		sz = read(sock_fd, recvbuf, MAX_READ - 1);
+ 		if (sz < 0) {
+ 			if (!bb_got_signal)
+-				bb_perror_msg("read from /dev/log");
++				bb_perror_msg("read from " LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92);
+ 			break;
+ 		}
+ 
+@@ -915,7 +922,8 @@ static void do_syslogd(void)
+ 				goto read_again;
+ 			/* man 3 syslog says: "A trailing newline is added when needed".
+ 			 * However, neither glibc nor uclibc do this:
+-			 * syslog(prio, "test")   sends "test\0" to /dev/log,
++			 * syslog(prio, "test")   sends "test\0"
++			 * to LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92,
+ 			 * syslog(prio, "test\n") sends "test\n\0".
+ 			 * IOW: newline is passed verbatim!
+ 			 * I take it to mean that it's syslogd's job
