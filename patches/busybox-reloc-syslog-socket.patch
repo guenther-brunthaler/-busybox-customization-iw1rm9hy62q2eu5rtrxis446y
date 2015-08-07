@@ -5,14 +5,14 @@ Index: busybox-1.21.0/sysklogd/Config.src
 ===================================================================
 --- busybox-1.21.0.orig/sysklogd/Config.src
 +++ busybox-1.21.0/sysklogd/Config.src
-@@ -22,6 +22,36 @@ config SYSLOGD
+@@ -22,6 +22,41 @@ config SYSLOGD
  	  wrong. And something almost always will go wrong if
  	  you wait long enough....
  
 +config DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
 +	bool "Act as a systemd syslog forwarding target"
 +	default n
-+	depends on SYSLOGD
++	depends on SYSLOGD && FEATURE_SYSTEMD
 +	help
 +	  Make syslogd compatible with journald on a Linux box
 +	  under the control of systemd.
@@ -38,6 +38,11 @@ Index: busybox-1.21.0/sysklogd/Config.src
 +	  syslog daemons. However, someone needs to forward log
 +	  messages to that socket, too, or there will not be
 +	  anything to be logged.
++
++	  Note that there is a preset option for this setting available
++	  if "Enable systemd support" has been selected in library
++	  tuning section, which allows syslogd to receive log messages
++	  forwarded by systemd-journald.
 +
  config FEATURE_ROTATE_LOGFILE
  	bool "Rotate message files"
