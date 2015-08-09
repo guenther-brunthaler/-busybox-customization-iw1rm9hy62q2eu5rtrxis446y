@@ -92,12 +92,12 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 ===================================================================
 --- busybox-1.21.0.orig/sysklogd/syslogd.c
 +++ busybox-1.21.0/sysklogd/syslogd.c
-@@ -691,9 +691,30 @@ static void parse_fac_prio_20(int pri, c
+@@ -691,9 +691,28 @@ static void parse_fac_prio_20(int pri, c
   * that there is no timestamp, short-circuiting the test. */
  static void timestamp_and_log(int pri, char *msg, int len)
  {
 +#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
-+	static char timestamp[16]; /* Last byte initialized as '\0'. */
++	char timestamp[15 + 1];
 +#else
  	char *timestamp;
 +#endif
@@ -111,9 +111,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 +	 * still a 32 bit value on a hopelessly outdated installation! */
 +	now= time(0);
 +	(void)strftime(
-+		timestamp,
-+		/* Leave trailing statically initialized '\0' as it was. */
-+		sizeof timestamp - 1,
++		timestamp, sizeof timestamp,
 +		/* 20150118z001122 msg... */
 +		/* 01234567890123456 */
 +		"%04Y%02m%02dz%02H%02M%02S",
@@ -123,7 +121,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  	/* Jan 18 00:11:22 msg... */
  	/* 01234567890123456 */
  	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
-@@ -707,6 +728,7 @@ static void timestamp_and_log(int pri, c
+@@ -707,6 +726,7 @@ static void timestamp_and_log(int pri, c
  		msg += 16;
  	}
  	timestamp[15] = '\0';
