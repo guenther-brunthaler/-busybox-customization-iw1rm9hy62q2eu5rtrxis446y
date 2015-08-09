@@ -6,4 +6,4 @@ busybox-ginit.patch
 busybox-vi-extra-docs.patch
 busybox-reloc-inittab.patch
 busybox-reloc-syslog-socket.patch
-busybox-syslogd-timeofday.patch
+busybox-syslogd-recvtime.patch

@@ -92,7 +92,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 ===================================================================
 --- busybox-1.21.0.orig/sysklogd/syslogd.c
 +++ busybox-1.21.0/sysklogd/syslogd.c
-@@ -691,9 +691,29 @@ static void parse_fac_prio_20(int pri, c
+@@ -691,9 +691,30 @@ static void parse_fac_prio_20(int pri, c
   * that there is no timestamp, short-circuiting the test. */
  static void timestamp_and_log(int pri, char *msg, int len)
  {
@@ -105,6 +105,11 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  
 +#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
 +	(void)len;
++	/* Will return the weird but constant date of one second before the
++	 * epoch for all dates beyond the representable maximum (EOVERFLOW).
++	 * Let's hope the admin will eventually notice it's 2038 and time_t is
++	 * still a 32 bit value on a hopelessly outdated installation! */
++	now= time(0);
 +	(void)strftime(
 +		timestamp,
 +		/* Leave trailing statically initialized '\0' as it was. */
@@ -112,17 +117,13 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 +		/* 20150118z001122 msg... */
 +		/* 01234567890123456 */
 +		"%04Y%02m%02dz%02H%02M%02S",
-+		/* Note: EOVERFLOW from gmtime() is not supported here. */
 +		gmtime(&now)
 +	);
-+	/* Note that <now> is inconsistent with the original code because it
-+	 * is based on UTC rather than localtime but this should not matter
-+	 * because its value is never actually used for anything. */
 +#else
  	/* Jan 18 00:11:22 msg... */
  	/* 01234567890123456 */
  	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
-@@ -707,6 +727,7 @@ static void timestamp_and_log(int pri, c
+@@ -707,6 +728,7 @@ static void timestamp_and_log(int pri, c
  		msg += 16;
  	}
  	timestamp[15] = '\0';

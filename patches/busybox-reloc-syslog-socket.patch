@@ -13,7 +13,7 @@ Index: busybox-1.21.0/sysklogd/Config.src
  	  wrong. And something almost always will go wrong if
  	  you wait long enough....
  
-+config DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
++config FEATURE_DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
 +	bool "Act as a systemd syslog forwarding target"
 +	default n
 +	depends on SYSLOGD && FEATURE_SYSTEMD
@@ -32,7 +32,7 @@ Index: busybox-1.21.0/sysklogd/Config.src
 +config DEV_LOG_LOCATION_UCHBU01FBI645UUCEFT1W64XN
 +	string "Filesystem location of syslogd's UNIX domain socket"
 +	default "/dev/log"
-+	depends on SYSLOGD && !DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
++	depends on SYSLOGD && !FEATURE_DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
 +	help
 +	  Classic syslog daemons on Linux always create the
 +	  /dev/log socket in order to listen there for log messages sent
@@ -63,7 +63,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 -	/* (if it exists, bind will fail) */
 -	strcpy(sunx.sun_path, "/dev/log");
 -	dev_log_name = xmalloc_follow_symlinks("/dev/log");
-+#if ENABLE_DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
++#if ENABLE_FEATURE_DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
 +	#define LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92 \
 +		"/run/systemd/journal/syslog"
 +#else
@@ -71,7 +71,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 +		CONFIG_DEV_LOG_LOCATION_UCHBU01FBI645UUCEFT1W64XN
 +#endif
 +	/* Unlink old LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92 or object it points
-+	/* to. (if it exists, bind will fail) */
++	 * to. (if it exists, bind will fail) */
 +	strcpy(sunx.sun_path, LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92);
 +	dev_log_name = xmalloc_follow_symlinks(LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92);
  	if (dev_log_name) {
@@ -105,3 +105,8 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  			 * syslog(prio, "test\n") sends "test\n\0".
  			 * IOW: newline is passed verbatim!
  			 * I take it to mean that it's syslogd's job
+@@ -1057,3 +1065,4 @@ int syslogd_main(int argc UNUSED_PARAM,
+ #undef OPTION_STR
+ #undef OPTION_DECL
+ #undef OPTION_PARAM
++#undef LOG_SOCKET_9RGTS5ZNL1LF8GBKNP6CHLR92
