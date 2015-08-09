@@ -1,8 +1,8 @@
 Support static relocation of /etc/inittab
 
-(c) 2014 by Guenther Brunthaler.
+(c) 2014 - 2015 by Guenther Brunthaler.
 This patch is free software.
-Distribution is permitted under the terms of the GPLv3.
+Distribution is permitted under the terms of the GPLv2.
 
 Index: busybox-1.21.0/init/init.c
 ===================================================================

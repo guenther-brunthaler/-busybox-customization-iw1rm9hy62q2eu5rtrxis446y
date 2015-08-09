@@ -1,6 +1,10 @@
 Provide an option to use a different socket than /dev/log for syslogd. This
 allows syslogd to co-exist with other log daemons, particularly journald.
 
+(c) 2015 by Guenther Brunthaler.
+This patch is free software.
+Distribution is permitted under the terms of the GPLv2.
+
 Index: busybox-1.21.0/sysklogd/Config.src
 ===================================================================
 --- busybox-1.21.0.orig/sysklogd/Config.src

@@ -1,5 +1,9 @@
 Add documentation for the vi applet.
 
+(c) 2015 by Guenther Brunthaler.
+This patch is free software.
+Distribution is permitted under the terms of the GPLv2.
+
 Index: busybox-current/docs/busybox_footer.pod
 ===================================================================
 --- busybox-current.orig/docs/busybox_footer.pod
