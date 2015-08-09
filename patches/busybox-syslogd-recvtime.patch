@@ -92,7 +92,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 ===================================================================
 --- busybox-1.21.0.orig/sysklogd/syslogd.c
 +++ busybox-1.21.0/sysklogd/syslogd.c
-@@ -691,9 +691,28 @@ static void parse_fac_prio_20(int pri, c
+@@ -691,7 +691,11 @@ static void parse_fac_prio_20(int pri, c
   * that there is no timestamp, short-circuiting the test. */
  static void timestamp_and_log(int pri, char *msg, int len)
  {
@@ -103,13 +103,23 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 +#endif
  	time_t now;
  
+ 	/* Jan 18 00:11:22 msg... */
+@@ -699,6 +703,26 @@ static void timestamp_and_log(int pri, c
+ 	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
+ 	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
+ 	) {
 +#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
-+	(void)len;
++		/* No timestamp? Fine with us. */
++		;
++	} else {
++		/* It's a nicely formatted timestamp. How beautiful! */
++		msg += 16; /* Kick it into the gutter and spit on it. */
++	}
 +	/* Will return the weird but constant date of one second before the
 +	 * epoch for all dates beyond the representable maximum (EOVERFLOW).
 +	 * Let's hope the admin will eventually notice it's 2038 and time_t is
 +	 * still a 32 bit value on a hopelessly outdated installation! */
-+	now= time(0);
++	now = time(0);
 +	(void)strftime(
 +		timestamp, sizeof timestamp,
 +		/* 20150118z001122 msg... */
@@ -118,10 +128,10 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 +		gmtime(&now)
 +	);
 +#else
- 	/* Jan 18 00:11:22 msg... */
- 	/* 01234567890123456 */
- 	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
-@@ -707,6 +726,7 @@ static void timestamp_and_log(int pri, c
+ 		time(&now);
+ 		timestamp = ctime(&now) + 4; /* skip day of week */
+ 	} else {
+@@ -707,6 +731,7 @@ static void timestamp_and_log(int pri, c
  		msg += 16;
  	}
  	timestamp[15] = '\0';
