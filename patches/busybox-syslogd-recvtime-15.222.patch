@@ -31,19 +31,11 @@ This is exactly what this patch does.
 But it does even more and changes the traditional timestamp format from
 something like
 
-Aug  9 05:53:02
+Aug  9 05:53:02 thishost user.notice root: hello
 
 into something like
 
-20150809z055302
-
-which has the same size as the traditionam time stamp - so your logs won't be
-bigger because of this - but includes the year as well as a time stamp based
-on UTC, making it comparable with other logs using the same log format no
-matter of timezones.
-
-As an added bonus, this format can be sorted lexicographically (i. e. using a
-normal string sort) which results in correctly sorted timestamps also.
+2015-08-09 05:53:02 +0000 user.notice@thishost root: hello
 
 (c) 2015 by Guenther Brunthaler.
 This patch is free software.
@@ -53,7 +45,7 @@ Index: busybox-1.21.0/sysklogd/Config.src
 ===================================================================
 --- busybox-1.21.0.orig/sysklogd/Config.src
 +++ busybox-1.21.0/sysklogd/Config.src
-@@ -56,6 +56,34 @@ config DEV_LOG_LOCATION_UCHBU01FBI645UUC
+@@ -56,6 +56,28 @@ config DEV_LOG_LOCATION_UCHBU01FBI645UUC
  	  if "Enable systemd support" has been selected in library
  	  tuning section, which allows syslogd to receive log messages
  	  forwarded by systemd-journald.
@@ -63,28 +55,22 @@ Index: busybox-1.21.0/sysklogd/Config.src
 +	depends on SYSLOGD
 +	help
 +	  Without this option, syslogd trusts timestamps provided by
-+	  the logging applications, which could completely lie about
-+	  it. The timestamps also miss any information about timezone
-+	  or year.
++	  the logging applications, which could totally lie about it.
++	  The timestamps also miss any information about timezone or
++	  year.
 +
 +	  This option makes syslogd ignore those timestamps completely
-+	  and replace them with the the timestamp when syslogd receives
-+	  the log message.
++	  and replace them with the timestamp when syslogd received the
++	  log message.
 +
 +	  This option also changes the traditional timestamp format for
-+	  log timestamps from something like
++	  log messages from something like
 +
-+	  Aug  9 07:53:02
++	  Aug  9 07:53:02 thishost user.notice root: hello
 +
 +	  as received in a time zone UTC-0700 hours into something like
 +
-+	  20150809z145302
-+
-+	  which has the same size as the traditional format - so your
-+	  logs will not become any bigger because of this - but
-+	  includes the year as well as a time stamp based on UTC,
-+	  making it comparable with other logs using the same log
-+	  format no matter of timezones or year of log creation.
++	  2015-08-09 07:53:02 -0700 user.notice@thishost root: hello
  
  config FEATURE_ROTATE_LOGFILE
  	bool "Rotate message files"
@@ -92,19 +78,37 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 ===================================================================
 --- busybox-1.21.0.orig/sysklogd/syslogd.c
 +++ busybox-1.21.0/sysklogd/syslogd.c
-@@ -691,7 +691,11 @@ static void parse_fac_prio_20(int pri, c
+@@ -171,10 +171,17 @@ struct globals {
+ 	/* ...then copy to parsebuf, escaping control chars */
+ 	/* (can grow x2 max) */
+ 	char parsebuf[MAX_READ*2];
++#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
++	/* ...then sprintf into printbuf, adding timestamp (25 chars),
++	 * host (64), fac.prio (20) to the message */
++	/* (growth by: 25 + 64 + 20 + delims = ~120) */
++	char printbuf[MAX_READ*2 + 138];
++#else
+ 	/* ...then sprintf into printbuf, adding timestamp (15 chars),
+ 	 * host (64), fac.prio (20) to the message */
+ 	/* (growth by: 15 + 64 + 20 + delims = ~110) */
+ 	char printbuf[MAX_READ*2 + 128];
++#endif
+ };
+ 
+ static const struct init_globals init_data = {
+@@ -691,7 +698,11 @@ static void parse_fac_prio_20(int pri, c
   * that there is no timestamp, short-circuiting the test. */
  static void timestamp_and_log(int pri, char *msg, int len)
  {
 +#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
-+	char timestamp[15 + 1];
++	char timestamp[25 + 1];
 +#else
  	char *timestamp;
 +#endif
  	time_t now;
  
  	/* Jan 18 00:11:22 msg... */
-@@ -699,6 +703,26 @@ static void timestamp_and_log(int pri, c
+@@ -699,6 +710,26 @@ static void timestamp_and_log(int pri, c
  	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
  	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
  	) {
@@ -122,16 +126,16 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 +	now = time(0);
 +	(void)strftime(
 +		timestamp, sizeof timestamp,
-+		/* 20150118z001122 msg... */
-+		/* 01234567890123456 */
-+		"%04Y%02m%02dz%02H%02M%02S",
-+		gmtime(&now)
++		/* 2015-01-18 00:11:22 +0000 fac.prio@host msg... */
++		/* 012345678901234567890123456 */
++		"%04Y-%02m-%02d %02H:%02M:%02S %z",
++		localtime(&now)
 +	);
 +#else
  		time(&now);
  		timestamp = ctime(&now) + 4; /* skip day of week */
  	} else {
-@@ -707,6 +731,7 @@ static void timestamp_and_log(int pri, c
+@@ -707,6 +738,7 @@ static void timestamp_and_log(int pri, c
  		msg += 16;
  	}
  	timestamp[15] = '\0';
@@ -139,3 +143,15 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  
  	if (option_mask32 & OPT_kmsg) {
  		log_to_kmsg(pri, msg);
+@@ -718,7 +750,11 @@ static void timestamp_and_log(int pri, c
+ 	else {
+ 		char res[20];
+ 		parse_fac_prio_20(pri, res);
++#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
++		sprintf(G.printbuf, "%s %s@%.64s %s\n", timestamp, res, G.hostname, msg);
++#else
+ 		sprintf(G.printbuf, "%s %.64s %s %s\n", timestamp, G.hostname, res, msg);
++#endif
+ 	}
+ 
+ 	/* Log message locally (to file or shared mem) */
