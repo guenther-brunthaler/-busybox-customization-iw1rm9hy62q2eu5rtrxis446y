@@ -18,7 +18,12 @@ c1=`basename -- "\`pwd\`"`
 test -n "$c1"
 c2=`hostname`
 test -n "$c2"
-c3=`date -u +%Y%m%d`
+c3=`stat -c %W busybox`
+case $c3 in
+	[1-9]*) ;;
+	*) c3=`stat -c %Y busybox`; test -n "$c3"
+esac
+c3=`date -d "@$c3" +%Y%m%d`
 test -n "$c3"
 stage=$c1-$c2-$c3
 sdir=$STAGES_SUBDIR
