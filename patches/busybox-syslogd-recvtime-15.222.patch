@@ -35,7 +35,7 @@ Aug  9 05:53:02 thishost user.notice root: hello
 
 into something like
 
-2015-08-09 05:53:02 +0000 user.notice@thishost root: hello
+2015-08-09 05:53:02 +0000 thishost user.notice root: hello
 
 (c) 2015 by Guenther Brunthaler.
 This patch is free software.
@@ -70,7 +70,7 @@ Index: busybox-1.21.0/sysklogd/Config.src
 +
 +	  as received in a time zone UTC-0700 hours into something like
 +
-+	  2015-08-09 07:53:02 -0700 user.notice@thishost root: hello
++	  2015-08-09 07:53:02 -0700 thishost user.notice root: hello
  
  config FEATURE_ROTATE_LOGFILE
  	bool "Rotate message files"
@@ -126,7 +126,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
 +	now = time(0);
 +	(void)strftime(
 +		timestamp, sizeof timestamp,
-+		/* 2015-01-18 00:11:22 +0000 fac.prio@host msg... */
++		/* 2015-01-18 00:11:22 +0000 host fac.prio msg... */
 +		/* 012345678901234567890123456 */
 +		"%04Y-%02m-%02d %02H:%02M:%02S %z",
 +		localtime(&now)
@@ -143,15 +143,3 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  
  	if (option_mask32 & OPT_kmsg) {
  		log_to_kmsg(pri, msg);
-@@ -718,7 +750,11 @@ static void timestamp_and_log(int pri, c
- 	else {
- 		char res[20];
- 		parse_fac_prio_20(pri, res);
-+#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
-+		sprintf(G.printbuf, "%s %s@%.64s %s\n", timestamp, res, G.hostname, msg);
-+#else
- 		sprintf(G.printbuf, "%s %.64s %s %s\n", timestamp, G.hostname, res, msg);
-+#endif
- 	}
- 
- 	/* Log message locally (to file or shared mem) */
