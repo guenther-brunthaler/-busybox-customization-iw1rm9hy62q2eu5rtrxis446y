@@ -6,4 +6,5 @@ busybox-vi-extra-docs.patch
 busybox-reloc-inittab.patch
 busybox-reloc-syslog-socket.patch
 busybox-syslogd-recvtime-15.222.patch
-busybox-klogd-socketsend.patch
+- busybox-klogd-socketsend.patch
+- busybox-man-section.patch
