@@ -1,5 +1,3 @@
-busybox-1.19.0-bb.patch
-busybox-1.21.0-mdev.patch
 busybox-vi-extra-docs.patch
 busybox-reloc-inittab.patch
 busybox-reloc-syslog-socket.patch
