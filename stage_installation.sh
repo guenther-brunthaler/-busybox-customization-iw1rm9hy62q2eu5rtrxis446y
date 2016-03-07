@@ -16,6 +16,13 @@ then
 fi
 c1=`basename -- "\`pwd\`"`
 test -n "$c1"
+if test -d .git && expr x"$c1" : x'.*[0-9]' = 0 > /dev/null
+then
+	c1=$c1-`
+		git describe --tags HEAD \
+		| sed 's/_BASE-/-p/; s/-g.*//; s/_/./g'
+	`
+fi
 c2=`hostname`
 test -n "$c2"
 c3=`stat -c %Y busybox`
