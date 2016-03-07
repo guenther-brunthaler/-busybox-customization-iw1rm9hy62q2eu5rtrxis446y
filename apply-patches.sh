@@ -1,6 +1,6 @@
 #! /bin/sh
 TAGFILE=miscutils/bbconfig.c
-SERIES=../patches/series.guards
+SERIES=../patches/series
 
 set -e
 APP=${0##*/}
@@ -12,7 +12,7 @@ then
 	false || exit
 fi
 b=`dirname "$SERIES"`
-guards < "$SERIES" | sed "s!^!$b/!" \
+sed "s!^!$b/!" "$SERIES" \
 | case $1 in
 	push)
 		echo "Applying patches..." >& 2

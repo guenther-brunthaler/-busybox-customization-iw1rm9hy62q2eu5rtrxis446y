@@ -4,11 +4,11 @@ Support static relocation of /etc/inittab
 This patch is free software.
 Distribution is permitted under the terms of the GPLv2.
 
-Index: busybox-1.21.0/init/init.c
+Index: busybox/init/init.c
 ===================================================================
---- busybox-1.21.0.orig/init/init.c	2013-01-14 18:04:27.000000000 +0100
-+++ busybox-1.21.0/init/init.c	2014-11-04 22:49:37.906006882 +0100
-@@ -28,6 +28,17 @@
+--- busybox.orig/init/init.c
++++ busybox/init/init.c
+@@ -23,6 +23,17 @@
  //config:	help
  //config:	  Allow init to read an inittab file when the system boot.
  //config:
@@ -26,7 +26,7 @@ Index: busybox-1.21.0/init/init.c
  //config:config FEATURE_KILL_REMOVED
  //config:	bool "Support killing processes that have been removed from inittab"
  //config:	default n
-@@ -648,8 +659,9 @@
+@@ -662,8 +673,9 @@ static void new_init_action(uint8_t acti
  static void parse_inittab(void)
  {
  #if ENABLE_FEATURE_USE_INITTAB
@@ -37,7 +37,7 @@ Index: busybox-1.21.0/init/init.c
  
  	if (parser == NULL)
  #endif
-@@ -898,7 +910,7 @@
+@@ -911,7 +923,7 @@ static void reload_inittab(void)
  {
  	struct init_action *a, **nextp;
  

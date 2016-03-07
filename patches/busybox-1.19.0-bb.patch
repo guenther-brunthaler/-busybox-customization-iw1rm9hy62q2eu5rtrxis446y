@@ -1,8 +1,8 @@
-Index: busybox-1.21.0/shell/ash.c
+Index: busybox/shell/ash.c
 ===================================================================
---- busybox-1.21.0.orig/shell/ash.c
-+++ busybox-1.21.0/shell/ash.c
-@@ -189,6 +189,8 @@
+--- busybox.orig/shell/ash.c
++++ busybox/shell/ash.c
+@@ -196,6 +196,8 @@
  //applet:IF_ASH(APPLET(ash, BB_DIR_BIN, BB_SUID_DROP))
  //applet:IF_FEATURE_SH_IS_ASH(APPLET_ODDNAME(sh, ash, BB_DIR_BIN, BB_SUID_DROP, sh))
  //applet:IF_FEATURE_BASH_IS_ASH(APPLET_ODDNAME(bash, ash, BB_DIR_BIN, BB_SUID_DROP, bash))
@@ -11,7 +11,7 @@ Index: busybox-1.21.0/shell/ash.c
  
  //kbuild:lib-$(CONFIG_ASH) += ash.o ash_ptr_hack.o shell_common.o
  //kbuild:lib-$(CONFIG_ASH_RANDOM_SUPPORT) += random.o
-@@ -7414,6 +7416,8 @@ tryexec(IF_FEATURE_SH_STANDALONE(int app
+@@ -7378,6 +7380,8 @@ tryexec(IF_FEATURE_SH_STANDALONE(int app
  		}
  		/* re-exec ourselves with the new arguments */
  		execve(bb_busybox_exec_path, argv, envp);

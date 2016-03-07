@@ -1,10 +1,6 @@
 busybox-1.19.0-bb.patch
 busybox-1.21.0-mdev.patch
-busybox-1.21.0-platform.patch
-busybox-1.21.0-xz.patch
 busybox-vi-extra-docs.patch
 busybox-reloc-inittab.patch
 busybox-reloc-syslog-socket.patch
 busybox-syslogd-recvtime-15.222.patch
-- busybox-klogd-socketsend.patch
-- busybox-man-section.patch

@@ -41,44 +41,41 @@ into something like
 This patch is free software.
 Distribution is permitted under the terms of the GPLv2.
 
-Index: busybox-1.21.0/sysklogd/Config.src
+Index: busybox/sysklogd/syslogd.c
 ===================================================================
---- busybox-1.21.0.orig/sysklogd/Config.src
-+++ busybox-1.21.0/sysklogd/Config.src
-@@ -56,6 +56,28 @@ config DEV_LOG_LOCATION_UCHBU01FBI645UUC
- 	  if "Enable systemd support" has been selected in library
- 	  tuning section, which allows syslogd to receive log messages
- 	  forwarded by systemd-journald.
-+config FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
-+	bool "Replace timestamps received by syslogd from log sources"
-+	default n
-+	depends on SYSLOGD
-+	help
-+	  Without this option, syslogd trusts timestamps provided by
-+	  the logging applications, which could totally lie about it.
-+	  The timestamps also miss any information about timezone or
-+	  year.
-+
-+	  This option makes syslogd ignore those timestamps completely
-+	  and replace them with the timestamp when syslogd received the
-+	  log message.
-+
-+	  This option also changes the traditional timestamp format for
-+	  log messages from something like
-+
-+	  Aug  9 07:53:02 thishost user.notice root: hello
-+
-+	  as received in a time zone UTC-0700 hours into something like
-+
-+	  2015-08-09 07:53:02 -0700 thishost user.notice root: hello
- 
- config FEATURE_ROTATE_LOGFILE
- 	bool "Rotate message files"
-Index: busybox-1.21.0/sysklogd/syslogd.c
-===================================================================
---- busybox-1.21.0.orig/sysklogd/syslogd.c
-+++ busybox-1.21.0/sysklogd/syslogd.c
-@@ -171,10 +171,17 @@ struct globals {
+--- busybox.orig/sysklogd/syslogd.c
++++ busybox/sysklogd/syslogd.c
+@@ -62,6 +62,29 @@
+ //config:	  tuning section, which allows syslogd to receive log messages
+ //config:	  forwarded by systemd-journald.
+ //config:
++//config:config FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
++//config:	bool "Replace timestamps received by syslogd from log sources"
++//config:	default n
++//config:	depends on SYSLOGD
++//config:	help
++//config:	  Without this option, syslogd trusts timestamps provided by
++//config:	  the logging applications, which could totally lie about it.
++//config:	  The timestamps also miss any information about timezone or
++//config:	  year.
++//config:
++//config:	  This option makes syslogd ignore those timestamps completely
++//config:	  and replace them with the timestamp when syslogd received the
++//config:	  log message.
++//config:
++//config:	  This option also changes the traditional timestamp format for
++//config:	  log messages from something like
++//config:
++//config:	  Aug  9 07:53:02 thishost user.notice root: hello
++//config:
++//config:	  as received in a time zone UTC-0700 hours into something like
++//config:
++//config:	  2015-08-09 07:53:02 -0700 thishost user.notice root: hello
++//config:
+ //config:config FEATURE_ROTATE_LOGFILE
+ //config:	bool "Rotate message files"
+ //config:	default y
+@@ -310,10 +333,17 @@ struct globals {
  	/* ...then copy to parsebuf, escaping control chars */
  	/* (can grow x2 max) */
  	char parsebuf[MAX_READ*2];
@@ -96,7 +93,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  };
  
  static const struct init_globals init_data = {
-@@ -691,7 +698,11 @@ static void parse_fac_prio_20(int pri, c
+@@ -848,7 +878,11 @@ static void parse_fac_prio_20(int pri, c
   * that there is no timestamp, short-circuiting the test. */
  static void timestamp_and_log(int pri, char *msg, int len)
  {
@@ -108,7 +105,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  	time_t now;
  
  	/* Jan 18 00:11:22 msg... */
-@@ -699,6 +710,26 @@ static void timestamp_and_log(int pri, c
+@@ -856,6 +890,26 @@ static void timestamp_and_log(int pri, c
  	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
  	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
  	) {
@@ -135,7 +132,7 @@ Index: busybox-1.21.0/sysklogd/syslogd.c
  		time(&now);
  		timestamp = ctime(&now) + 4; /* skip day of week */
  	} else {
-@@ -707,6 +738,7 @@ static void timestamp_and_log(int pri, c
+@@ -864,6 +918,7 @@ static void timestamp_and_log(int pri, c
  		msg += 16;
  	}
  	timestamp[15] = '\0';
