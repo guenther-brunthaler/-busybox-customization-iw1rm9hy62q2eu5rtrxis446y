@@ -12,7 +12,7 @@ else
 fi
 hw4tpsl60mzd5e2muvvvwymvg_1=`
 	find "$hw4tpsl60mzd5e2muvvvwymvg_0" \
-		-path "$hw4tpsl60mzd5e2muvvvwymvg_0/busybox-*" \
+		-path "$hw4tpsl60mzd5e2muvvvwymvg_0/busybox*" \
 		-type d -print -prune
 `
 hw4tpsl60mzd5e2muvvvwymvg_1=$hw4tpsl60mzd5e2muvvvwymvg_1/.pc
