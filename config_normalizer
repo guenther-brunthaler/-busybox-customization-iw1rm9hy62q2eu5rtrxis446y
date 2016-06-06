@@ -1,0 +1,34 @@
+#! /bin/sh
+# This is a filter reading from standard input and writing to standard output.
+# -p packs a .config file into a normalized settings file.
+# -u unpacks a normalized settings file back into .config file format.
+set -e
+APP=${0##*/}
+trap 'test $? = 0 || echo "$APP failed!" >& 2' 0
+
+pack() {
+	sed '
+		s/^CONFIG_//; t
+		s/^# CONFIG_\([^[:space:]]\+\) is not set[[:space:]]*/\1/; t
+		d
+	' | LC_COLLATE=C sort -u
+}
+
+unpack() {
+	sed '
+		s/^[^=[:space:]]\+$/# CONFIG_& is not set/; t
+		s/^/CONFIG_/
+	'
+}
+
+action=false
+while getopts pu opt
+do
+	case $opt in
+		p) action=pack;;
+		u) action=unpack;;
+		*) false || exit
+	esac
+done
+shift `expr $OPTIND - 1 || :`
+$action
