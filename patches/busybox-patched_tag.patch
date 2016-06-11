@@ -1,0 +1,11 @@
+Create a non-empty tag file in the top-level directory as a simple
+check that all patches have been applied successfully.
+
+Site-local build helper scripts might check this.
+
+Index: busybox/xworld_patches_applied
+===================================================================
+--- /dev/null
++++ busybox/xworld_patches_applied
+@@ -0,0 +1 @@
++true

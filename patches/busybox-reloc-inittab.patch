@@ -8,7 +8,7 @@ Index: busybox/init/init.c
 ===================================================================
 --- busybox.orig/init/init.c
 +++ busybox/init/init.c
-@@ -23,6 +23,17 @@
+@@ -34,6 +34,17 @@
  //config:	help
  //config:	  Allow init to read an inittab file when the system boot.
  //config:

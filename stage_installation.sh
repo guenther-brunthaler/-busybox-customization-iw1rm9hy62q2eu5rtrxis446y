@@ -1,5 +1,6 @@
 #! /bin/sh
-TAGFILE=miscutils/bbconfig.c
+TAGFILE1=miscutils/bbconfig.c
+TAGFILE2=xworld_patches_applied
 TAGDIR=../patches
 BB_TARGET=busybox-pbyqxzl1ktqlk3fjm3arlrclg
 BB_LINK=busybox-localsite
@@ -9,7 +10,9 @@ set -e
 APP=${0##*/}
 trap 'test $? = 0 || echo "$APP failed!" >& 2' 0
 
-if test ! -f "$TAGFILE" || test ! -d "$TAGDIR"
+if
+	test ! -d "$TAGDIR" || test ! -f "$TAGFILE1" \
+	|| test ! -f "$TAGFILE2" || test ! -s "$TAGFILE2"
 then
 	echo "Run $APP from the BusyBox top-level source directory!" >& 2
 	false || exit
@@ -20,7 +23,7 @@ if test -d .git && expr x"$c1" : x'.*[0-9]' = 0 > /dev/null
 then
 	c1=$c1-`
 		git describe --tags HEAD \
-		| sed 's/_BASE-/-p/; s/-g.*//; s/_/./g'
+		| sed 'y:/:-:; s/_BASE-/-p/; s/-g.*//; s/_/./g'
 	`
 fi
 c2=`hostname`
@@ -52,7 +55,9 @@ mkdir "$sdir/usr/local/share"
 mkdir "$sdir/usr/local/share/doc"
 mkdir "$sdir/usr/local/share/doc/$stage"
 cp docs/BusyBox.txt "$sdir/usr/local/share/doc/$stage/$BB_LINK.txt"
-# Create symlinks for commands which are not otherwise available.
+# Create symlinks for commands which are not otherwise available. This is
+# intelligent enough to recognize symlinks installed by a previous instance of
+# this script.
 ./busybox --list | {
 	# Seed the list of search paths from $PATH.
 	ofs=$IFS; IFS=':'; set -- $PATH; IFS=$ofs
