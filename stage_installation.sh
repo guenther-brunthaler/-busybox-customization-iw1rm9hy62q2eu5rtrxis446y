@@ -1,7 +1,6 @@
 #! /bin/sh
 TAGFILE1=miscutils/bbconfig.c
 TAGFILE2=xworld_patches_applied
-TAGDIR=../patches
 BB_TARGET=busybox-pbyqxzl1ktqlk3fjm3arlrclg
 BB_LINK=busybox-localsite
 STAGES_SUBDIR=stages
@@ -10,15 +9,17 @@ set -e
 APP=${0##*/}
 trap 'test $? = 0 || echo "$APP failed!" >& 2' 0
 
+test 1 = $#; src=$1; test -n "$src"; test -d "$src"
 if
-	test ! -d "$TAGDIR" || test ! -f "$TAGFILE1" \
-	|| test ! -f "$TAGFILE2" || test ! -s "$TAGFILE2"
+	test ! -d "$src"/.git || test ! -f "$src/$TAGFILE1" \
+	|| test ! -f "$src/$TAGFILE2" || test ! -s "$src/$TAGFILE2"
 then
-	echo "Run $APP from the BusyBox top-level source directory!" >& 2
+	echo "Usage: $APP <BusyBox_top-level_source_directory>" >& 2
 	false || exit
 fi
-c1=`basename -- "\`pwd\`"`
+c1=`basename -- "$src"`
 test -n "$c1"
+cd "$src"
 if test -d .git && expr x"$c1" : x'.*[0-9]' = 0 > /dev/null
 then
 	c1=$c1-`
