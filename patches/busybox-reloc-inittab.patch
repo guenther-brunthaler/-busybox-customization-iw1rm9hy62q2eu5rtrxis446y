@@ -1,0 +1,48 @@
+Support static relocation of /etc/inittab
+
+(c) 2014 - 2015 by Guenther Brunthaler.
+This patch is free software.
+Distribution is permitted under the terms of the GPLv2.
+
+Index: busybox/init/init.c
+===================================================================
+--- busybox.orig/init/init.c
++++ busybox/init/init.c
+@@ -23,6 +23,17 @@
+ //config:	help
+ //config:	  Allow init to read an inittab file when the system boot.
+ //config:
++//config:config INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B
++//config:	string "Location of inittab file"
++//config:	default "/etc/inittab"
++//config:	depends on FEATURE_USE_INITTAB
++//config:	help
++//config:	  This is the location where init actually reads its inittab from.
++//config:
++//config:	  Specifying a non-standard location here allows Busybox's init to
++//config:	  co-exist with other init implementations using a different
++//config:	  inittab at the standard location (/etc/inittab).
++//config:
+ //config:config FEATURE_KILL_REMOVED
+ //config:	bool "Support killing processes that have been removed from inittab"
+ //config:	default n
+@@ -648,8 +659,9 @@ static void new_init_action(uint8_t acti
+ static void parse_inittab(void)
+ {
+ #if ENABLE_FEATURE_USE_INITTAB
++# define INITTAB_PATH CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B
+ 	char *token[4];
+-	parser_t *parser = config_open2("/etc/inittab", fopen_for_read);
++	parser_t *parser = config_open2(INITTAB_PATH, fopen_for_read);
+ 
+ 	if (parser == NULL)
+ #endif
+@@ -897,7 +909,7 @@ static void reload_inittab(void)
+ {
+ 	struct init_action *a, **nextp;
+ 
+-	message(L_LOG, "reloading /etc/inittab");
++	message(L_LOG, "reloading " INITTAB_PATH);
+ 
+ 	/* Disable old entries */
+ 	for (a = init_action_list; a; a = a->next)

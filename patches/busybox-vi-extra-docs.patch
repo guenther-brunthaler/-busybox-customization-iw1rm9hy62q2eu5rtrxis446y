@@ -1,0 +1,321 @@
+Add documentation for the vi applet.
+
+(c) 2015 by Guenther Brunthaler.
+This patch is free software.
+Distribution is permitted under the terms of the GPLv2.
+
+Index: busybox-current/docs/busybox_footer.pod
+===================================================================
+--- busybox-current.orig/docs/busybox_footer.pod
++++ busybox-current/docs/busybox_footer.pod
+@@ -1,5 +1,310 @@
+ =back
+ 
++=head1 VI APPLET COMMANDS
++
++Guenther Brunthaler
++ 
++ ---------------------------------------------------------------------
++ 
++ Table of Contents
++ 
++ 1. Command line arguments
++ 2. Initial (non-edit) mode
++ 3. Deletion commands
++ 
++ There seems to be no comprehensive guide on that minimalistic VI
++ implementation.
++ 
++ I tried to figure out which commands BusyBox VI supports, and
++ document them here.
++ 
++ 
++ ---------------------------------------------------------------------
++ 
++ 1. Command line arguments
++ 
++ ---------------------------------------------------------------------
++ 
++ The -c option accepts a string to be executed in colon mode; it can
++ be used to jump to a specific line number or to a line matching a
++ search expression.
++ 
++ The -R mode opens a file in readonly mode.
++ 
++ -H displays a summary of implemented features.
++ 
++ Otherwise, only a file name is expected as an argument.
++ 
++ 
++ ---------------------------------------------------------------------
++ 
++ 2. Initial (non-edit) mode
++ 
++ ---------------------------------------------------------------------
++ +-------------------------------------------------------------------+
++ |ZZ|Save file if anything was changed. Then quit. (Like command     |
++ |  |":x".)                                                          |
++ |--+----------------------------------------------------------------|
++ |i |Enter insert mode before current character.                     |
++ |--+----------------------------------------------------------------|
++ |a |Enter insert mode after current character.                      |
++ |--+----------------------------------------------------------------|
++ |r |Replace a single character (typed after "r") without switching  |
++ |  |to insert mode.                                                 |
++ |--+----------------------------------------------------------------|
++ |R |Switch to overtype mode. Like insert mode, but overwrites       |
++ |  |existing characters instead of inserting new ones.              |
++ |--+----------------------------------------------------------------|
++ |x |Delete a single character without switching to insert mode.     |
++ |--+----------------------------------------------------------------|
++ |s |Like "x", but enter insert mode after deleting the current      |
++ |  |character.                                                      |
++ |--+----------------------------------------------------------------|
++ |~ |Toggle current character between upper and lower case, then move|
++ |  |on to next character.                                           |
++ |--+----------------------------------------------------------------|
++ |c |Like the delete commands, but switches to insert mode after     |
++ |  |completing the deletion.                                        |
++ |--+----------------------------------------------------------------|
++ |y |Copy text into a buffer.                                        |
++ |--+----------------------------------------------------------------|
++ |p |Insert text from buffer after current position.                 |
++ |--+----------------------------------------------------------------|
++ |P |Insert text from buffer before current position.                |
++ |--+----------------------------------------------------------------|
++ |U |Restore the current line as it was before the most recent text  |
++ |  |modification command.                                           |
++ |--+----------------------------------------------------------------|
++ |xp|Transpose (exchange) two letters following. Actually, this is   |
++ |  |just "x" command followed by "p" command.                       |
++ |--+----------------------------------------------------------------|
++ |. |Repeat last command. BusyBox build option. If disabled, behaves |
++ |  |like "x".                                                       |
++ |--+----------------------------------------------------------------|
++ |: |Enter "colon mode" for entering command strings.                |
++ +-------------------------------------------------------------------+
++ 
++ Table 1. Movement commands suitable for defining regions of text to
++ operate on.
++ 
++ +-------------------------------------------------------------------+
++ |h|Cursor left.                                                     |
++ |-+-----------------------------------------------------------------|
++ |k|Cursor up.                                                       |
++ |-+-----------------------------------------------------------------|
++ |j|Cursor down.                                                     |
++ |-+-----------------------------------------------------------------|
++ |l|Cursor right (lowercase L, not digit "one").                     |
++ |-+-----------------------------------------------------------------|
++ |H|Move to first ("Home") line on screen.                           |
++ |-+-----------------------------------------------------------------|
++ |M|Move to middle line on screen.                                   |
++ |-+-----------------------------------------------------------------|
++ |L|Move to last line on screen.                                     |
++ |-+-----------------------------------------------------------------|
++ |+|Move to first non-space character of next line ([Enter] does the |
++ | |same).                                                           |
++ |-+-----------------------------------------------------------------|
++ |-|Move to first non-space character of previous line.              |
++ |-+-----------------------------------------------------------------|
++ |0|Move to first character on the current line.                     |
++ |-+-----------------------------------------------------------------|
++ |^|Move to first non-space character on the current line.           |
++ |-+-----------------------------------------------------------------|
++ |$|Move to last character on the current line.                      |
++ |-+-----------------------------------------------------------------|
++ |b|Move to previous beginning of a word. "Word" means delimited by  |
++ | |whitespace.                                                      |
++ |-+-----------------------------------------------------------------|
++ |B|Like "b", but only considers letters and skips symbol characters.|
++ |-+-----------------------------------------------------------------|
++ |w|Move to next beginning of a word. "Word" means delimited by      |
++ | |whitespace.                                                      |
++ |-+-----------------------------------------------------------------|
++ |W|Like "w", but only considers letters and skips symbol characters.|
++ |-+-----------------------------------------------------------------|
++ |e|Move to next end of a word. "Word" means delimited by whitespace.|
++ |-+-----------------------------------------------------------------|
++ |E|Like "e", but only considers letters and skips symbol characters.|
++ |-+-----------------------------------------------------------------|
++ |}|Move to after the current paragraph (normally to the empty line  |
++ | |between paragraphs).                                             |
++ |-+-----------------------------------------------------------------|
++ |f|Move to next character within current line matching the one typed|
++ | |after the command.                                               |
++ +-------------------------------------------------------------------+
++ 
++ 
++ Table 2. Movement commands which to NOT work as region definitions.
++ 
++ +-------------------------------------------------------------------+
++ |||Like "0" if used without numeric prefix; otherwise move to that  |
++ | |column.                                                          |
++ |-+-----------------------------------------------------------------|
++ |G|Go to the last file of the file. When used with a numeric prefix,|
++ | |moves to that line instead.                                      |
++ |-+-----------------------------------------------------------------|
++ |m|Set a bookmark at the current line and assign the following      |
++ | |letter as its name.                                              |
++ |-+-----------------------------------------------------------------|
++ |'|Jump to the line of a previously set bookmark whose name matches |
++ | |the following typed letter.                                      |
++ +-------------------------------------------------------------------+
++ 
++ 
++ The movement commands can be prefixed with an integer specifying
++ repetition of the command for that many times, i. e. "3w" moved 3
++ words to the right.
++ 
++ The optional integer prefix can in turn be prefixed by a
++ [double-quote][letter] prefix. This assigns the buffer named with the
++ letter to the command.
++ 
++ Deleted text will then be stored in that buffer; text to put with "p"
++ /"P" will be taken from it.
++ 
++ 
++ ---------------------------------------------------------------------
++ 
++ 3. Deletion commands
++ 
++ ---------------------------------------------------------------------
++ 
++ "d" followed by a movement command removes the text moved over and
++ puts it into a "cut buffer".
++ 
++ "c" does the same but switches to insert mode after the deletion,
++ while "d" stays in non-edit mode.
++ 
++ Both commands are very different from "r" which only replaces a
++ single character.
++ 
++ Table 3. Line commands
++ 
++ +-------------------------------------------------------------------+
++ |A|Switch to insert mode and move after the last character of the   |
++ | |current line.                                                    |
++ |-+-----------------------------------------------------------------|
++ |I|Switch to insert mode and move to the first (non-space) character|
++ | |of the current line.                                             |
++ |-+-----------------------------------------------------------------|
++ |o|Insert a new line after the current line and enter insert mode   |
++ | |there.                                                           |
++ |-+-----------------------------------------------------------------|
++ |O|Insert a new line before (at) the current line and enter insert  |
++ | |mode there.                                                      |
++ |-+-----------------------------------------------------------------|
++ |J|Join the current line with the following one. I. e. it deletes   |
++ | |the invisible line separator separating both lines.              |
++ +-------------------------------------------------------------------+
++ 
++ 
++ Table 4. 2-letter Line commands
++ 
++ +-------------------------------------------------------------------+
++ |dd|Deletes the whole line.                                         |
++ |--+----------------------------------------------------------------|
++ |cc|Makes the current line empty but leaves it as such.             |
++ |--+----------------------------------------------------------------|
++ |yy|Copies the contents of the current line to a buffer without     |
++ |  |removing it.                                                    |
++ +-------------------------------------------------------------------+
++ 
++ 
++ All commands are actual 2-letter commands and not just 1-letter
++ commands with a modifier. Repetition prefixes therefore have to go
++ before the whole command and not between the two letters. I. e.,
++ "4dd" deletes 4 lines.
++ 
++ Table 5. Searching
++ 
++ +-------------------------------------------------------------------+
++ |/|Search forward. Enter regular expression to search. (Busybox     |
++ | |option. Without RE support, enter a literal search string).      |
++ |-+-----------------------------------------------------------------|
++ |?|Search backward. Like "/", only backwards.                       |
++ |-+-----------------------------------------------------------------|
++ |n|Repeat last search (only if it was a forward search).            |
++ |-+-----------------------------------------------------------------|
++ |N|Repeat last search (only if it was a backward search).           |
++ |-+-----------------------------------------------------------------|
++ |;|Repeat last "f" command (which searches forward for a single     |
++ | |character in the same line).                                     |
++ |-+-----------------------------------------------------------------|
++ |,|Repeat last "f" command, but search towards the beginning of the |
++ | |line rather than towards the end.                                |
++ +-------------------------------------------------------------------+
++ 
++ 
++ In BusyBox, none of those search commands work for specifying a text
++ region to operate on.
++ 
++ Table 6. Action commands
++ 
++ +------------------------------+
++ |<<|Shift line(s) to the left. |
++ |--+---------------------------|
++ |>>|Shift line(s) to the right.|
++ +------------------------------+
++ 
++ 
++ Shifting is done by inserting/removing one tab character (\t in C).
++ The tab display width can be changed with the ":set" command. Spaces
++ cannot be inserted/removed by this command.
++ 
++ Table 7. Colon mode
++ 
++ +-------------------------------------------------------------------+
++ |q!       |Exit discarding any changes.                             |
++ |---------+---------------------------------------------------------|
++ |q        |Exit, but only of nothing was changed.                   |
++ |---------+---------------------------------------------------------|
++ |w        |Save changes to file, but do not exit.                   |
++ |---------+---------------------------------------------------------|
++ |x        |Exit saving any changes.                                 |
++ |---------+---------------------------------------------------------|
++ |e        |Edit a new file, but only if no unsaved changes in       |
++ |         |current file.                                            |
++ |---------+---------------------------------------------------------|
++ |e!       |Edit a new file discarding any changes to current file.  |
++ |---------+---------------------------------------------------------|
++ |r        |Read a file and insert at current position. The filename |
++ |         |is the command argument.                                 |
++ |---------+---------------------------------------------------------|
++ |24       |Jump to line 24. Works with arbitrary other line numbers |
++ |         |as well.                                                 |
++ |---------+---------------------------------------------------------|
++ |'f       |Go to line bookmarked with letter "f".                   |
++ |---------+---------------------------------------------------------|
++ |/str/    |Search forward for string "str".                         |
++ |---------+---------------------------------------------------------|
++ |2,5w!    |Write lines 2 through 5 to file "foo.txt".               |
++ |foo.txt  |                                                         |
++ |---------+---------------------------------------------------------|
++ |152l     |List just line 152 literally in command line area.       |
++ |---------+---------------------------------------------------------|
++ |!date    |Run an external command and temporarily show its output. |
++ |---------+---------------------------------------------------------|
++ |/from/,/ |Delete lines from next line containing "from" to         |
++ |to/d     |following line containing "to".                          |
++ |---------+---------------------------------------------------------|
++ |s/what/  |Replace next pattern "what" with string "with".          |
++ |with/    |                                                         |
++ +-------------------------------------------------------------------+
++ 
++ 
++ The lines deleted by the colon mode "d" command are saved in a buffer
++ which can be inserted later with "p"/"P".
++ 
++ Table 8. Colon mode "set" commands
++ 
++ +----------------------------------------------------+
++ |set all         |Display a list of settable options.|
++ |----------------+-----------------------------------|
++ |set option=value|Set a new option value.            |
++ +----------------------------------------------------+
++
++
+ =head1 LIBC NSS
+ 
+ GNU Libc (glibc) uses the Name Service Switch (NSS) to configure the behavior

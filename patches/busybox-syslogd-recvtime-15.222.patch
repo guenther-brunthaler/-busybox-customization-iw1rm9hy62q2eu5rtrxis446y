@@ -1,0 +1,146 @@
+Make syslogd time stamps more reliable
+
+The original BusyBox syslogd trusts the timestamps provided by the logging
+applications.
+
+This is a big mistake unless all all applications can be fully trusted,
+because otherwise an application can set up TZ as they like and produce time
+stamps telling syslogd any desired time within a distance of 24 hours.
+
+But even worse, an application could choose to bypass the syslog() API
+completely and send a faked log message to /dev/log directly - then it can
+specify a completely arbitrary time stamp within a distance of one year, and
+syslogd would believe it.
+
+The problem is that the time stamp syslogd gets contains date and time with no
+timezone information and no year.
+
+This can generate trouble even without untrustworthy applications when syslogd
+is running on a portable computer which experiences time zone changes while
+its user takes it with him or her on his or her travels.
+
+Then different syslog entries will be based on different time zones, but this
+information is missing in the entries.
+
+The only sane thing to do is, therefore, ignore the time stamps sent by the
+logging applications completely, and let syslogd replace them with the time
+the message was received.
+
+This is exactly what this patch does.
+
+But it does even more and changes the traditional timestamp format from
+something like
+
+Aug  9 05:53:02 thishost user.notice root: hello
+
+into something like
+
+2015-08-09 05:53:02 +0000 thishost user.notice root: hello
+
+(c) 2015 by Guenther Brunthaler.
+This patch is free software.
+Distribution is permitted under the terms of the GPLv2.
+
+Index: busybox/sysklogd/syslogd.c
+===================================================================
+--- busybox.orig/sysklogd/syslogd.c
++++ busybox/sysklogd/syslogd.c
+@@ -174,10 +174,17 @@ struct globals {
+ 	/* ...then copy to parsebuf, escaping control chars */
+ 	/* (can grow x2 max) */
+ 	char parsebuf[MAX_READ*2];
++#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
++	/* ...then sprintf into printbuf, adding timestamp (25 chars),
++	 * host (64), fac.prio (20) to the message */
++	/* (growth by: 25 + 64 + 20 + delims = ~120) */
++	char printbuf[MAX_READ*2 + 138];
++#else
+ 	/* ...then sprintf into printbuf, adding timestamp (15 chars),
+ 	 * host (64), fac.prio (20) to the message */
+ 	/* (growth by: 15 + 64 + 20 + delims = ~110) */
+ 	char printbuf[MAX_READ*2 + 128];
++#endif
+ };
+ 
+ static const struct init_globals init_data = {
+@@ -712,7 +719,11 @@ static void parse_fac_prio_20(int pri, c
+  * that there is no timestamp, short-circuiting the test. */
+ static void timestamp_and_log(int pri, char *msg, int len)
+ {
++#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
++	char timestamp[25 + 1];
++#else
+ 	char *timestamp;
++#endif
+ 	time_t now;
+ 
+ 	/* Jan 18 00:11:22 msg... */
+@@ -720,6 +731,26 @@ static void timestamp_and_log(int pri, c
+ 	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
+ 	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
+ 	) {
++#if ENABLE_FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
++		/* No timestamp? Fine with us. */
++		;
++	} else {
++		/* It's a nicely formatted timestamp. How beautiful! */
++		msg += 16; /* Kick it into the gutter and spit on it. */
++	}
++	/* Will return the weird but constant date of one second before the
++	 * epoch for all dates beyond the representable maximum (EOVERFLOW).
++	 * Let's hope the admin will eventually notice it's 2038 and time_t is
++	 * still a 32 bit value on a hopelessly outdated installation! */
++	now = time(0);
++	(void)strftime(
++		timestamp, sizeof timestamp,
++		/* 2015-01-18 00:11:22 +0000 host fac.prio msg... */
++		/* 012345678901234567890123456 */
++		"%04Y-%02m-%02d %02H:%02M:%02S %z",
++		localtime(&now)
++	);
++#else
+ 		time(&now);
+ 		timestamp = ctime(&now) + 4; /* skip day of week */
+ 	} else {
+@@ -728,6 +759,7 @@ static void timestamp_and_log(int pri, c
+ 		msg += 16;
+ 	}
+ 	timestamp[15] = '\0';
++#endif
+ 
+ 	if (option_mask32 & OPT_kmsg) {
+ 		log_to_kmsg(pri, msg);
+Index: busybox/sysklogd/Config.src
+===================================================================
+--- busybox.orig/sysklogd/Config.src
++++ busybox/sysklogd/Config.src
+@@ -57,6 +57,29 @@ config DEV_LOG_LOCATION_UCHBU01FBI645UUC
+ 	  tuning section, which allows syslogd to receive log messages
+ 	  forwarded by systemd-journald.
+ 
++config FEATURE_ALTERNATE_TIMESTAMPS_0X963MA5GSW9PNK7A5GIY9DXB
++	bool "Replace timestamps received by syslogd from log sources"
++	default n
++	depends on SYSLOGD
++	help
++	  Without this option, syslogd trusts timestamps provided by
++	  the logging applications, which could totally lie about it.
++	  The timestamps also miss any information about timezone or
++	  year.
++
++	  This option makes syslogd ignore those timestamps completely
++	  and replace them with the timestamp when syslogd received the
++	  log message.
++
++	  This option also changes the traditional timestamp format for
++	  log messages from something like
++
++	  Aug  9 07:53:02 thishost user.notice root: hello
++
++	  as received in a time zone UTC-0700 hours into something like
++
++	  2015-08-09 07:53:02 -0700 thishost user.notice root: hello
++
+ config FEATURE_ROTATE_LOGFILE
+ 	bool "Rotate message files"
+ 	default y
