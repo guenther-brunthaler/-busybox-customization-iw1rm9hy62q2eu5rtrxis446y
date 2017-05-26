@@ -8,7 +8,7 @@ Index: busybox/init/init.c
 ===================================================================
 --- busybox.orig/init/init.c
 +++ busybox/init/init.c
-@@ -23,6 +23,17 @@
+@@ -34,6 +34,17 @@
  //config:	help
  //config:	  Allow init to read an inittab file when the system boot.
  //config:
@@ -26,7 +26,7 @@ Index: busybox/init/init.c
  //config:config FEATURE_KILL_REMOVED
  //config:	bool "Support killing processes that have been removed from inittab"
  //config:	default n
-@@ -648,8 +659,9 @@ static void new_init_action(uint8_t acti
+@@ -668,8 +679,9 @@ static void new_init_action(uint8_t acti
  static void parse_inittab(void)
  {
  #if ENABLE_FEATURE_USE_INITTAB
@@ -37,7 +37,7 @@ Index: busybox/init/init.c
  
  	if (parser == NULL)
  #endif
-@@ -897,7 +909,7 @@ static void reload_inittab(void)
+@@ -917,7 +929,7 @@ static void reload_inittab(void)
  {
  	struct init_action *a, **nextp;
  
