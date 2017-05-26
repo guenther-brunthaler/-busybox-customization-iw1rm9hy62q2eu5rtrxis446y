@@ -19,7 +19,7 @@ test -d "$2"
 if test ! -f "$src/$TAGFILE1" || test ! -f "$SERIES"
 then
 	die "Run $APP from the same directory as the script and specify" \
-		"'push'/'pull' and the top-level source directory" \
+		"'push'/'pop' and the top-level source directory" \
 		"to be patched as arguments!"
 fi
 b=`dirname -- "$SERIES"`

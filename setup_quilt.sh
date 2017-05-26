@@ -12,7 +12,9 @@ else
 fi
 hw4tpsl60mzd5e2muvvvwymvg_1=`
 	find "$hw4tpsl60mzd5e2muvvvwymvg_0" \
-		-path "$hw4tpsl60mzd5e2muvvvwymvg_0/busybox*" -type d \
+		'(' -path "$hw4tpsl60mzd5e2muvvvwymvg_0/busybox" \
+		-o -path "$hw4tpsl60mzd5e2muvvvwymvg_0/busybox*" ')' \
+		'(' -type d -o -type l ')' \
 		'(' -name "*.git" -prune -o -print -prune ')'
 `
 hw4tpsl60mzd5e2muvvvwymvg_1=$hw4tpsl60mzd5e2muvvvwymvg_1/.pc
