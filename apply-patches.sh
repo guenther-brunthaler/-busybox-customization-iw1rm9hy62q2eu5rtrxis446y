@@ -13,10 +13,9 @@ die() {
 	false || exit
 }
 
-test 2 = $#
-src=$2
-test -d "$2"
-if test ! -f "$src/$TAGFILE1" || test ! -f "$SERIES"
+if
+	{ test 2 = $# && src=$2 && test -d "$2"; } && false \
+	|| { test ! -f "$src/$TAGFILE1" || test ! -f "$SERIES"; }
 then
 	die "Run $APP from the same directory as the script and specify" \
 		"'push'/'pop' and the top-level source directory" \

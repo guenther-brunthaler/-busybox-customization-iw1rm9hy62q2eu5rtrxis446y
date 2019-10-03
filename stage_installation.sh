@@ -1,18 +1,36 @@
 #! /bin/sh
+# Create a "stages" subdirectory below the build directory and populate it
+# with a staging directory for installation. If the build directory also
+# contains file $BB_STATIC_EXEC_BUILT (see below), put properly renamed
+# versions of it into the staging directory as well.
+#
+# Version 2019.276.1
+# Copyright (c) 2019 Günther Brunthaler. All rights reserved.
+#
+# This script is free software.
+# Distribution is permitted under the terms of the GPLv3.
+
+BB_EXEC_BUILT=busybox
+BB_STATIC_EXEC_BUILT=busybox.static
 TAGFILE1=miscutils/bbconfig.c
 TAGFILE2=xworld_patches_applied
 BB_TARGET=busybox-pbyqxzl1ktqlk3fjm3arlrclg
+BB_STATIC_TARGET=busybox-static-pbyqxzl1ktqlk3fjm3arlrclg
 BB_LINK=busybox-localsite
+BB_STATIC_LINK=busybox-static-localsite
 STAGES_SUBDIR=stages
 
 set -e
 APP=${0##*/}
 trap 'test $? = 0 || echo "$APP failed!" >& 2' 0
 
-test 1 = $#; src=$1; test -n "$src"; test -d "$src"
 if
-	test ! -d "$src"/.git || test ! -f "$src/$TAGFILE1" \
-	|| test ! -f "$src/$TAGFILE2" || test ! -s "$src/$TAGFILE2"
+	{
+		test 1 = $# && src=$1 && test -n "$src" && test -d "$src"
+	} && false || {
+		test ! -d "$src"/.git || test ! -f "$src/$TAGFILE1" \
+		|| test ! -f "$src/$TAGFILE2" || test ! -s "$src/$TAGFILE2"
+	}
 then
 	echo "Usage: $APP <BusyBox_top-level_source_directory>" >& 2
 	false || exit
@@ -29,7 +47,7 @@ then
 fi
 c2=`hostname`
 test -n "$c2"
-c3=`stat -c %Y busybox`
+c3=`stat -c %Y -- "$BB_EXEC_BUILT"`
 test -n "$c3"
 c3=`date -d "@$c3" +%Y%m%d`
 test -n "$c3"
@@ -46,20 +64,25 @@ do
 done
 echo "Installing into staging directory" >& 2
 printf '%s\n' "$sdir"
-mkdir "$sdir"
-mkdir "$sdir/usr"
-mkdir "$sdir/usr/local"
-mkdir "$sdir/usr/local/bin"
-cp busybox "$sdir/usr/local/bin/$BB_TARGET"
-ln -s "$BB_TARGET" "$sdir/usr/local/bin/$BB_LINK"
-mkdir "$sdir/usr/local/share"
-mkdir "$sdir/usr/local/share/doc"
-mkdir "$sdir/usr/local/share/doc/$stage"
+mkdir -- "$sdir"
+mkdir -- "$sdir/usr"
+mkdir -- "$sdir/usr/local"
+mkdir -- "$sdir/usr/local/bin"
+cp -- "$BB_EXEC_BUILT" "$sdir/usr/local/bin/$BB_TARGET"
+ln -s -- "$BB_TARGET" "$sdir/usr/local/bin/$BB_LINK"
+if test -e "$BB_STATIC_EXEC_BUILT"
+then
+	cp -- "$BB_STATIC_EXEC_BUILT" "$sdir/usr/local/bin/$BB_STATIC_TARGET"
+	ln -s -- "$BB_STATIC_TARGET" "$sdir/usr/local/bin/$BB_STATIC_LINK"
+fi
+mkdir -- "$sdir/usr/local/share"
+mkdir -- "$sdir/usr/local/share/doc"
+mkdir -- "$sdir/usr/local/share/doc/$stage"
 cp docs/BusyBox.txt "$sdir/usr/local/share/doc/$stage/$BB_LINK.txt"
 # Create symlinks for commands which are not otherwise available. This is
 # intelligent enough to recognize symlinks installed by a previous instance of
 # this script.
-./busybox --list | {
+./"$BB_EXEC_BUILT" --list | {
 	# Seed the list of search paths from $PATH.
 	ofs=$IFS; IFS=':'; set -- $PATH; IFS=$ofs
 	n=$#
