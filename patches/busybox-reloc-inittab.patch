@@ -1,6 +1,6 @@
 Support static relocation of /etc/inittab
 
-(c) 2014 - 2015 by Guenther Brunthaler.
+(c) 2014-2019 by Guenther Brunthaler.
 This patch is free software.
 Distribution is permitted under the terms of the GPLv2.
 
@@ -8,25 +8,25 @@ Index: busybox/init/init.c
 ===================================================================
 --- busybox.orig/init/init.c
 +++ busybox/init/init.c
-@@ -34,6 +34,17 @@
+@@ -33,6 +33,17 @@
  //config:	help
- //config:	  Allow init to read an inittab file when the system boot.
+ //config:	Allow init to read an inittab file when the system boot.
  //config:
 +//config:config INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B
 +//config:	string "Location of inittab file"
 +//config:	default "/etc/inittab"
 +//config:	depends on FEATURE_USE_INITTAB
 +//config:	help
-+//config:	  This is the location where init actually reads its inittab from.
++//config:	This is the location where init actually reads its inittab from.
 +//config:
-+//config:	  Specifying a non-standard location here allows Busybox's init to
-+//config:	  co-exist with other init implementations using a different
-+//config:	  inittab at the standard location (/etc/inittab).
++//config:	Specifying a non-standard location here allows Busybox's init to
++//config:	co-exist with other init implementations using a different
++//config:	inittab at the standard location (/etc/inittab).
 +//config:
  //config:config FEATURE_KILL_REMOVED
  //config:	bool "Support killing processes that have been removed from inittab"
  //config:	default n
-@@ -668,8 +679,9 @@ static void new_init_action(uint8_t acti
+@@ -676,8 +687,9 @@ static void new_init_action(uint8_t acti
  static void parse_inittab(void)
  {
  #if ENABLE_FEATURE_USE_INITTAB
@@ -37,7 +37,7 @@ Index: busybox/init/init.c
  
  	if (parser == NULL)
  #endif
-@@ -917,7 +929,7 @@ static void reload_inittab(void)
+@@ -930,7 +942,7 @@ static void reload_inittab(void)
  {
  	struct init_action *a, **nextp;
  
@@ -45,4 +45,4 @@ Index: busybox/init/init.c
 +	message(L_LOG, "reloading " INITTAB_PATH);
  
  	/* Disable old entries */
- 	for (a = init_action_list; a; a = a->next)
+ 	for (a = G.init_action_list; a; a = a->next)

@@ -1,0 +1,104 @@
+Alternate format for locally-generated log timestamps
+
+If option -t is used to replace timestamps received by syslogd from log
+sources with new locally-generated timestamps, this option changes the
+traditional timestamp format for log messages from something like
+
+Aug  9 07:53:02 thishost user.notice root: hello
+
+as received in a time zone 7 hours behind of UTC into something like
+
+2015-08-09 07:53:02 -0700 thishost user.notice root: hello
+
+(c) 2015-2019 by Guenther Brunthaler.
+This patch is free software.
+Distribution is permitted under the terms of the GPLv2.
+
+Index: busybox/sysklogd/syslogd.c
+===================================================================
+--- busybox.orig/sysklogd/syslogd.c
++++ busybox/sysklogd/syslogd.c
+@@ -62,6 +62,23 @@
+ //config:	tuning section, which allows syslogd to receive log messages
+ //config:	forwarded by systemd-journald.
+ //config:
++//config:config FEATURE_ALTERNATE_LOG_FORMAT_0X963MA5GSW9PNK7A5GIY9DXB
++//config:	bool "Alternate format for locally-generated log timestamps"
++//config:	default n
++//config:	depends on SYSLOGD
++//config:	help
++//config:	If option -t is used to replace timestamps received by syslogd
++//config:	from log sources with new locally-generated timestamps, this
++//config:	option changes the traditional timestamp format for log messages
++//config:	from something like
++//config:
++//config:	Aug  9 07:53:02 thishost user.notice root: hello
++//config:
++//config:	as received in a time zone 7 hours behind of UTC into something
++//config:	like
++//config:
++//config:	2015-08-09 07:53:02 -0700 thishost user.notice root: hello
++//config:
+ //config:config FEATURE_ROTATE_LOGFILE
+ //config:	bool "Rotate message files"
+ //config:	default y
+@@ -311,10 +328,17 @@ struct globals {
+ 	/* ...then copy to parsebuf, escaping control chars */
+ 	/* (can grow x2 max) */
+ 	char parsebuf[MAX_READ*2];
++#if ENABLE_FEATURE_ALTERNATE_LOG_FORMAT_0X963MA5GSW9PNK7A5GIY9DXB
++	/* ...then sprintf into printbuf, adding timestamp (25 chars),
++	 * host (64), fac.prio (20) to the message */
++	/* (growth by: 25 + 64 + 20 + delims = ~120) */
++	char printbuf[MAX_READ*2 + 138];
++#else
+ 	/* ...then sprintf into printbuf, adding timestamp (15 chars),
+ 	 * host (64), fac.prio (20) to the message */
+ 	/* (growth by: 15 + 64 + 20 + delims = ~110) */
+ 	char printbuf[MAX_READ*2 + 128];
++#endif
+ };
+ 
+ static const struct init_globals init_data = {
+@@ -852,6 +876,9 @@ static void parse_fac_prio_20(int pri, c
+ static void timestamp_and_log(int pri, char *msg, int len)
+ {
+ 	char *timestamp = NULL;
++#if ENABLE_FEATURE_ALTERNATE_LOG_FORMAT_0X963MA5GSW9PNK7A5GIY9DXB
++	char timestamp_buf[25 + 1];
++#endif
+ 	time_t now;
+ 
+ 	/* Jan 18 00:11:22 msg... */
+@@ -868,11 +895,31 @@ static void timestamp_and_log(int pri, c
+ 	}
+ 
+ 	if (!timestamp) {
++#if ENABLE_FEATURE_ALTERNATE_LOG_FORMAT_0X963MA5GSW9PNK7A5GIY9DXB
++		/* Will return the weird but constant date of one second
++		 * before the epoch for all dates beyond the representable
++		 * maximum (EOVERFLOW). Let's hope the admin will eventually
++		 * notice it's 2038 and time_t is still a 32 bit value on a
++		 * hopelessly outdated installation! */
++		now = time(0);
++		(void)strftime(
++			timestamp= timestamp_buf, sizeof timestamp_buf,
++			/* 0         1         2       */
++			/* 012345678901234567890123456 */
++			/* 2015-01-18 00:11:22 +0000 host fac.prio msg... */
++			"%04Y-%02m-%02d %02H:%02M:%02S %z",
++			localtime(&now)
++		);
++	} else {
++		timestamp[15] = '\0';
++	}
++#else
+ 		time(&now);
+ 		timestamp = ctime(&now) + 4; /* skip day of week */
+ 	}
+ 
+ 	timestamp[15] = '\0';
++#endif
+ 
+ 	if (option_mask32 & OPT_kmsg) {
+ 		log_to_kmsg(pri, msg);
