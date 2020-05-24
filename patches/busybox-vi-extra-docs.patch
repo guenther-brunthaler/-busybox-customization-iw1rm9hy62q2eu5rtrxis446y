@@ -8,48 +8,51 @@ Index: busybox/docs/busybox_footer.pod
 ===================================================================
 --- busybox.orig/docs/busybox_footer.pod
 +++ busybox/docs/busybox_footer.pod
-@@ -1,3 +1,308 @@
+@@ -1,3 +1,367 @@
 +=head1 VI APPLET COMMANDS
 +
 +Guenther Brunthaler
-+ 
++
++ Revision History
++ v2020.145     GB
++
 + ---------------------------------------------------------------------
-+ 
++
 + Table of Contents
-+ 
++
 + 1. Command line arguments
 + 2. Initial (non-edit) mode
 + 3. Deletion commands
-+ 
++ 4. Search Commands
++ 5. Indentation
++ 6. Command mode
++
 + There seems to be no comprehensive guide on that minimalistic VI
 + implementation.
-+ 
++
 + I tried to figure out which commands BusyBox VI supports, and
 + document them here.
-+ 
-+ 
++
++
 + ---------------------------------------------------------------------
-+ 
 + 1. Command line arguments
-+ 
 + ---------------------------------------------------------------------
-+ 
++
 + The -c option accepts a string to be executed in colon mode; it can
 + be used to jump to a specific line number or to a line matching a
 + search expression.
-+ 
++
 + The -R mode opens a file in readonly mode.
-+ 
++
 + -H displays a summary of implemented features.
-+ 
++
 + Otherwise, only a file name is expected as an argument.
-+ 
-+ 
++
++
 + ---------------------------------------------------------------------
-+ 
 + 2. Initial (non-edit) mode
-+ 
 + ---------------------------------------------------------------------
++
 + +-------------------------------------------------------------------+
 + |ZZ|Save file if anything was changed. Then quit. (Like command     |
 + |  |":x".)                                                          |
@@ -92,10 +95,10 @@ Index: busybox/docs/busybox_footer.pod
 + |--+----------------------------------------------------------------|
 + |: |Enter "colon mode" for entering command strings.                |
 + +-------------------------------------------------------------------+
-+ 
++
 + Table 1. Movement commands suitable for defining regions of text to
 + operate on.
-+ 
++
 + +-------------------------------------------------------------------+
 + |h|Cursor left.                                                     |
 + |-+-----------------------------------------------------------------|
@@ -142,10 +145,10 @@ Index: busybox/docs/busybox_footer.pod
 + |f|Move to next character within current line matching the one typed|
 + | |after the command.                                               |
 + +-------------------------------------------------------------------+
-+ 
-+ 
-+ Table 2. Movement commands which to NOT work as region definitions.
-+ 
++
++
++ Table 2. Movement commands which do NOT work as region definitions.
++
 + +-------------------------------------------------------------------+
 + |||Like "0" if used without numeric prefix; otherwise move to that  |
 + | |column.                                                          |
@@ -159,37 +162,46 @@ Index: busybox/docs/busybox_footer.pod
 + |'|Jump to the line of a previously set bookmark whose name matches |
 + | |the following typed letter.                                      |
 + +-------------------------------------------------------------------+
-+ 
-+ 
-+ The movement commands can be prefixed with an integer specifying
-+ repetition of the command for that many times, i. e. "3w" moved 3
-+ words to the right.
-+ 
++
++
++ Table 3. Prefix commands
++
++ +-------------------------------------------------------------------+
++ |"|Switch to a particular cut buffer. Must be followed by a letter  |
++ | |which identifies the buffer.                                     |
++ |-+-----------------------------------------------------------------|
++ |5|(actually all decimal digits and not just 5) Multi-digit         |
++ | |repetition prefix for following command                          |
++ +-------------------------------------------------------------------+
++
++
++ Movement-, deletion- and character-based commands can be prefixed
++ with a decimal integer specifying a repetition count for the
++ following command, i. e. "3w" moves 3 words to the right.
++
 + The optional integer prefix can in turn be prefixed by a
 + [double-quote][letter] prefix. This assigns the buffer named with the
 + letter to the command.
-+ 
-+ Deleted text will then be stored in that buffer; text to put with "p"
-+ /"P" will be taken from it.
-+ 
-+ 
++
++ Deleted or copied ("yanked") text will then be stored in that buffer;
++ text to put with "p"/"P" will be taken from it.
++
++
 + ---------------------------------------------------------------------
-+ 
 + 3. Deletion commands
-+ 
 + ---------------------------------------------------------------------
-+ 
++
 + "d" followed by a movement command removes the text moved over and
 + puts it into a "cut buffer".
-+ 
++
 + "c" does the same but switches to insert mode after the deletion,
 + while "d" stays in non-edit mode.
-+ 
++
 + Both commands are very different from "r" which only replaces a
 + single character.
-+ 
-+ Table 3. Line commands
-+ 
++
++ Table 4. Line commands
++
 + +-------------------------------------------------------------------+
 + |A|Switch to insert mode and move after the last character of the   |
 + | |current line.                                                    |
@@ -206,10 +218,10 @@ Index: busybox/docs/busybox_footer.pod
 + |J|Join the current line with the following one. I. e. it deletes   |
 + | |the invisible line separator separating both lines.              |
 + +-------------------------------------------------------------------+
-+ 
-+ 
-+ Table 4. 2-letter Line commands
-+ 
++
++
++ Table 5. 2-letter Line commands
++
 + +-------------------------------------------------------------------+
 + |dd|Deletes the whole line.                                         |
 + |--+----------------------------------------------------------------|
@@ -218,15 +230,20 @@ Index: busybox/docs/busybox_footer.pod
 + |yy|Copies the contents of the current line to a buffer without     |
 + |  |removing it.                                                    |
 + +-------------------------------------------------------------------+
-+ 
-+ 
++
++
 + All commands are actual 2-letter commands and not just 1-letter
 + commands with a modifier. Repetition prefixes therefore have to go
 + before the whole command and not between the two letters. I. e.,
 + "4dd" deletes 4 lines.
-+ 
-+ Table 5. Searching
-+ 
++
++
++ ---------------------------------------------------------------------
++ 4. Search Commands
++ ---------------------------------------------------------------------
++
++ Table 6. Searching
++
 + +-------------------------------------------------------------------+
 + |/|Search forward. Enter regular expression to search. (Busybox     |
 + | |option. Without RE support, enter a literal search string).      |
@@ -243,26 +260,40 @@ Index: busybox/docs/busybox_footer.pod
 + |,|Repeat last "f" command, but search towards the beginning of the |
 + | |line rather than towards the end.                                |
 + +-------------------------------------------------------------------+
-+ 
-+ 
++
++
 + In BusyBox, none of those search commands work for specifying a text
 + region to operate on.
-+ 
-+ Table 6. Action commands
-+ 
++
++
++ ---------------------------------------------------------------------
++ 5. Indentation
++ ---------------------------------------------------------------------
++
++ Table 7. Action commands
++
 + +------------------------------+
 + |<<|Shift line(s) to the left. |
 + |--+---------------------------|
 + |>>|Shift line(s) to the right.|
 + +------------------------------+
-+ 
-+ 
++
++
 + Shifting is done by inserting/removing one tab character (\t in C).
 + The tab display width can be changed with the ":set" command. Spaces
 + cannot be inserted/removed by this command.
-+ 
-+ Table 7. Colon mode
-+ 
++
++
++ ---------------------------------------------------------------------
++ 6. Command mode
++ ---------------------------------------------------------------------
++
++ The following commands are only available at the command prompt, i.
++ e. after leaving interactive mode by pressing [Esc] and pressing the
++ [:] key.
++
++ Table 8. Colon mode
++
 + +-------------------------------------------------------------------+
 + |q!       |Exit discarding any changes.                             |
 + |---------+---------------------------------------------------------|
@@ -300,18 +331,46 @@ Index: busybox/docs/busybox_footer.pod
 + |s/what/  |Replace next pattern "what" with string "with".          |
 + |with/    |                                                         |
 + +-------------------------------------------------------------------+
-+ 
-+ 
++
++
 + The lines deleted by the colon mode "d" command are saved in a buffer
 + which can be inserted later with "p"/"P".
-+ 
-+ Table 8. Colon mode "set" commands
-+ 
-+ +----------------------------------------------------+
-+ |set all         |Display a list of settable options.|
-+ |----------------+-----------------------------------|
-+ |set option=value|Set a new option value.            |
-+ +----------------------------------------------------+
++
++ Table 9. Colon mode "set" commands
++
++ +-------------------------------------------------------------------+
++ |set all     |Display a list of settable options. (Actually,        |
++ |            |displays the current option values.)                  |
++ |------------+------------------------------------------------------|
++ |set         |(undocumented) Does the same.                         |
++ |------------+------------------------------------------------------|
++ |set tabstop=|Set tab width to <n> columns. (Initially 8.)          |
++ |<n>         |                                                      |
++ |------------+------------------------------------------------------|
++ |set         |Enable copying whitespace prefix of the previous line |
++ |autoindent  |to the beginning of a new one.                        |
++ |------------+------------------------------------------------------|
++ |set         |Disable auto-indentation.                             |
++ |noautoindent|                                                      |
++ |------------+------------------------------------------------------|
++ |set flash   |Enable visual screen flashes for indicating error     |
++ |            |conditions.                                           |
++ |------------+------------------------------------------------------|
++ |set noflash |Enable audible beeps for indicating error conditions. |
++ |------------+------------------------------------------------------|
++ |set         |Make search/replace case-insensitive.                 |
++ |ignorecase  |                                                      |
++ |------------+------------------------------------------------------|
++ |set         |Make search/replace case-senstitive                   |
++ |noignorecase|                                                      |
++ |------------+------------------------------------------------------|
++ |set         |When entering one of () [] {}, shortly move the cursor|
++ |showmatch   |to the matching other bracket, and then back to where |
++ |            |it was.                                               |
++ |------------+------------------------------------------------------|
++ |set         |Disable the showmatch functionality.                  |
++ |noshowmatch |                                                      |
++ +-------------------------------------------------------------------+
 +
 +
  =head1 LIBC NSS

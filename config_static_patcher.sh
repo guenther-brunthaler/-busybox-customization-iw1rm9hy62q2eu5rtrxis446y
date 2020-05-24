@@ -3,8 +3,8 @@
 # ./config_normalizer, enabling options to build a static Busybox version
 # instead of the default dynamically-linked one.
 #
-# Version 2019.276
-# Copyright (c) 2019 Günther Brunthaler. All rights reserved.
+# Version 2020.145
+# Copyright (c) 2019-2020 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
 # Distribution is permitted under the terms of the GPLv3.
@@ -24,8 +24,6 @@ shift `expr $OPTIND - 1 || :`
 test $# = 0
 
 sed '
-	s/^\(FEATURE_SH_STANDALONE\)=.*/\1/
-	s/^FEATURE_SH_STANDALONE$/&=y/
 	s/^\(STATIC\)=.*$/\1/
 	s/^STATIC$/&=y/
 '

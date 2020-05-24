@@ -1,28 +1,43 @@
 #! /bin/sh
 # Create a "stages" subdirectory below the build directory and populate it
 # with a staging directory for installation. If the build directory also
-# contains file $BB_STATIC_EXEC_BUILT (see below), put properly renamed
-# versions of it into the staging directory as well.
+# contains file $BB_STATIC_EXEC_BUILT or $BB_STANDALONE_EXEC_BUILT (see
+# below), put properly renamed versions of it into the staging directory as
+# well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2019.276.1
-# Copyright (c) 2019 Günther Brunthaler. All rights reserved.
+# Version 2020.145
+# Copyright (c) 2019-2020 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
 # Distribution is permitted under the terms of the GPLv3.
 
 BB_EXEC_BUILT=busybox
 BB_STATIC_EXEC_BUILT=busybox.static
+BB_STANDALONE_EXEC_BUILT=busybox.standalone
 TAGFILE1=miscutils/bbconfig.c
 TAGFILE2=xworld_patches_applied
 BB_TARGET=busybox-pbyqxzl1ktqlk3fjm3arlrclg
 BB_STATIC_TARGET=busybox-static-pbyqxzl1ktqlk3fjm3arlrclg
+BB_STANDALONE_TARGET=busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
 BB_LINK=busybox-localsite
 BB_STATIC_LINK=busybox-static-localsite
+BB_STANDALONE_LINK=busybox-standalone-localsite
+BB_STANDALONE_LINK_2=busybox-standalone
 STAGES_SUBDIR=stages
 
 set -e
 APP=${0##*/}
-trap 'test $? = 0 || echo "$APP failed!" >& 2' 0
+trap 'test $? = 0 || echo "\"$APP\" failed!" >& 2' 0
+
+generic=false
+while getopts g opt
+do
+	case $opt in
+		g) generic=true;;
+		*) false || exit
+	esac
+done
+shift `expr $OPTIND - 1 || :`
 
 if
 	{
@@ -45,7 +60,12 @@ then
 		| sed 'y:/:-:; s/_BASE-/-p/; s/-g.*//; s/_/./g'
 	`
 fi
-c2=`hostname`
+if $generic
+then
+	c2=`uname -m`
+else
+	c2=`hostname`
+fi
 test -n "$c2"
 c3=`stat -c %Y -- "$BB_EXEC_BUILT"`
 test -n "$c3"
@@ -74,6 +94,15 @@ if test -e "$BB_STATIC_EXEC_BUILT"
 then
 	cp -- "$BB_STATIC_EXEC_BUILT" "$sdir/usr/local/bin/$BB_STATIC_TARGET"
 	ln -s -- "$BB_STATIC_TARGET" "$sdir/usr/local/bin/$BB_STATIC_LINK"
+fi
+if test -e "$BB_STANDALONE_EXEC_BUILT"
+then
+	cp -- "$BB_STANDALONE_EXEC_BUILT" \
+		"$sdir/usr/local/bin/$BB_STANDALONE_TARGET"
+	ln -s -- "$BB_STANDALONE_TARGET" \
+		"$sdir/usr/local/bin/$BB_STANDALONE_LINK"
+	ln -s -- "$BB_STANDALONE_LINK" \
+		"$sdir/usr/local/bin/$BB_STANDALONE_LINK_2"
 fi
 mkdir -- "$sdir/usr/local/share"
 mkdir -- "$sdir/usr/local/share/doc"
