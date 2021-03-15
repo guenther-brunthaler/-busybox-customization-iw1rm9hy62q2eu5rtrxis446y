@@ -7,7 +7,7 @@
 # below), put properly renamed versions of it into the staging directory as
 # well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2021.74
+# Version 2021.74.1
 # Copyright (c) 2019-2021 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
@@ -110,7 +110,7 @@ then
 	mkdir -- "$sdir/boot/bin"
 	cat <<- . > "$sdir/boot/bin/sh"
 		#! /bin/$BB_STANDALONE_TARGET ash
-		exec /bin/$BB_STANDALONE_TARGET ash
+		exec /bin/$BB_STANDALONE_TARGET ash \${1+"\$@"}
 .
 	chmod +x -- "$sdir/boot/bin/sh"
 	cp -- "$BB_STANDALONE_EXEC_BUILT" \
