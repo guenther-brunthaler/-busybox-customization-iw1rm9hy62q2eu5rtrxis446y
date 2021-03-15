@@ -1,12 +1,14 @@
 #! /bin/sh
-# Create a "stages" subdirectory below the build directory and populate it
+# Run this script with the BB build/source directory as the only argument.
+#
+# It create a "stages" subdirectory below the build directory and populate it
 # with a staging directory for installation. If the build directory also
 # contains file $BB_STATIC_EXEC_BUILT or $BB_STANDALONE_EXEC_BUILT (see
 # below), put properly renamed versions of it into the staging directory as
 # well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2020.145
-# Copyright (c) 2019-2020 Günther Brunthaler. All rights reserved.
+# Version 2021.74
+# Copyright (c) 2019-2021 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
 # Distribution is permitted under the terms of the GPLv3.
@@ -16,6 +18,7 @@ BB_STATIC_EXEC_BUILT=busybox.static
 BB_STANDALONE_EXEC_BUILT=busybox.standalone
 TAGFILE1=miscutils/bbconfig.c
 TAGFILE2=xworld_patches_applied
+BB_STANDALONE_DOC=busybox-doc-pbyqxzl1ktqlk3fjm3arlrclg.txt
 BB_TARGET=busybox-pbyqxzl1ktqlk3fjm3arlrclg
 BB_STATIC_TARGET=busybox-static-pbyqxzl1ktqlk3fjm3arlrclg
 BB_STANDALONE_TARGET=busybox-standalone-pbyqxzl1ktqlk3fjm3arlrclg
@@ -103,11 +106,28 @@ then
 		"$sdir/usr/local/bin/$BB_STANDALONE_LINK"
 	ln -s -- "$BB_STANDALONE_LINK" \
 		"$sdir/usr/local/bin/$BB_STANDALONE_LINK_2"
+	mkdir -- "$sdir/boot"
+	mkdir -- "$sdir/boot/bin"
+	cat <<- . > "$sdir/boot/bin/sh"
+		#! /bin/$BB_STANDALONE_TARGET ash
+		exec /bin/$BB_STANDALONE_TARGET ash
+.
+	chmod +x -- "$sdir/boot/bin/sh"
+	cp -- "$BB_STANDALONE_EXEC_BUILT" \
+		"$sdir/boot/bin/$BB_STANDALONE_TARGET"
+	bzip2 -9c < docs/BusyBox.txt \
+		> "$sdir/boot/bin/$BB_STANDALONE_DOC.bz2"
+	if test -e "$BB_STATIC_EXEC_BUILT"
+	then
+		xz -c9 < "$BB_STATIC_EXEC_BUILT" \
+			> "$sdir/boot/bin/$BB_STATIC_TARGET.xz"
+	fi
 fi
 mkdir -- "$sdir/usr/local/share"
 mkdir -- "$sdir/usr/local/share/doc"
 mkdir -- "$sdir/usr/local/share/doc/$stage"
-cp docs/BusyBox.txt "$sdir/usr/local/share/doc/$stage/$BB_LINK.txt"
+gzip -9c < docs/BusyBox.txt \
+	> "$sdir/usr/local/share/doc/$stage/$BB_LINK.txt.gz"
 # Create symlinks for commands which are not otherwise available. This is
 # intelligent enough to recognize symlinks installed by a previous instance of
 # this script.
