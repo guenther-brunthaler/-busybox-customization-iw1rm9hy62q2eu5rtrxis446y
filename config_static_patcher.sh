@@ -3,8 +3,8 @@
 # ./config_normalizer, enabling options to build a static Busybox version
 # instead of the default dynamically-linked one.
 #
-# Version 2020.145
-# Copyright (c) 2019-2020 Günther Brunthaler. All rights reserved.
+# Version 2021.74
+# Copyright (c) 2019-2021 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
 # Distribution is permitted under the terms of the GPLv3.
@@ -23,7 +23,13 @@ shift `expr $OPTIND - 1 || :`
 
 test $# = 0
 
-sed '
-	s/^\(STATIC\)=.*$/\1/
-	s/^STATIC$/&=y/
-'
+nl=`echo :`; nl=${nl%:}
+script=
+for ena in STATIC STATIC_LIBGCC
+do
+	script=$script${script:+"$nl"}'
+		s/^\('$ena'\)=.*$/\1/
+		s/^'$ena'$/&=y/
+	'
+done
+sed "$script"

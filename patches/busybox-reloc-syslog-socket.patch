@@ -14,12 +14,12 @@ Index: busybox/sysklogd/syslogd.c
  //config:	you wait long enough....
  //config:
 +//config:config FEATURE_DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
-+//config:	bool "Act as a systemd syslog forwarding target"
++//config:	bool "systemd-journald forwarding target support"
 +//config:	default n
-+//config:	depends on SYSLOGD && FEATURE_SYSTEMD
++//config:	depends on SYSLOGD
 +//config:	help
 +//config:	Make syslogd compatible with journald on a Linux box
-+//config:	under the control of systemd.
++//config:	under the control of systemd and systemd-journald.
 +//config:
 +//config:	This makes syslogd listen on the
 +//config:	/run/systemd/journal/syslog UNIX domain socket instead
@@ -35,23 +35,23 @@ Index: busybox/sysklogd/syslogd.c
 +//config:	depends on SYSLOGD && !FEATURE_DEV_LOG_JOURNALD_9EX5GAIJB3V64NFWS2550A753
 +//config:	help
 +//config:	Classic syslog daemons on Linux always create the
-+//config:	/dev/log socket in order to listen there for log messages sent
-+//config:	there via the syslog() API.
++//config:	dev/log socket in order to listen there for log
++//config:	messages sent there via the syslog() API.
 +//config:
-+//config:	Using a different socket allows co-existence with other
-+//config:	syslog daemons. However, someone needs to forward log
-+//config:	messages to that socket, too, or there will not be
-+//config:	anything to be logged.
++//config:	Using a different socket allows co-existence with
++//config:	other syslog daemons. However, someone needs to
++//config:	forward log messages to that socket, too, or there
++//config:	will not be anything to be logged.
 +//config:
-+//config:	Note that there is a preset option for this setting available
-+//config:	if "Enable systemd support" has been selected in library
-+//config:	tuning section, which allows syslogd to receive log messages
-+//config:	forwarded by systemd-journald.
++//config:	Note that there is a preset option for this setting
++//config:	available if "systemd-journald forwarding target
++//config:	support" has been selected which allows syslogd to
++//config:	receive log messages forwarded by systemd-journald.
 +//config:
  //config:config FEATURE_ROTATE_LOGFILE
  //config:	bool "Rotate message files"
  //config:	default y
-@@ -948,10 +983,17 @@ static NOINLINE int create_socket(void)
+@@ -967,10 +1002,17 @@ static NOINLINE int create_socket(void)
  	memset(&sunx, 0, sizeof(sunx));
  	sunx.sun_family = AF_UNIX;
  
@@ -73,7 +73,7 @@ Index: busybox/sysklogd/syslogd.c
  	if (dev_log_name) {
  		safe_strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
  		free(dev_log_name);
-@@ -960,7 +1002,7 @@ static NOINLINE int create_socket(void)
+@@ -979,7 +1021,7 @@ static NOINLINE int create_socket(void)
  
  	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
  	xbind(sock_fd, (struct sockaddr *) &sunx, sizeof(sunx));
@@ -82,7 +82,7 @@ Index: busybox/sysklogd/syslogd.c
  
  	return sock_fd;
  }
-@@ -1030,7 +1072,7 @@ static void do_syslogd(void)
+@@ -1050,7 +1092,7 @@ static void do_syslogd(void)
  		sz = read(STDIN_FILENO, recvbuf, MAX_READ - 1);
  		if (sz < 0) {
  			if (!bb_got_signal)
@@ -91,7 +91,7 @@ Index: busybox/sysklogd/syslogd.c
  			break;
  		}
  
-@@ -1040,7 +1082,8 @@ static void do_syslogd(void)
+@@ -1060,7 +1102,8 @@ static void do_syslogd(void)
  				goto read_again;
  			/* man 3 syslog says: "A trailing newline is added when needed".
  			 * However, neither glibc nor uclibc do this:
@@ -101,7 +101,7 @@ Index: busybox/sysklogd/syslogd.c
  			 * syslog(prio, "test\n") sends "test\n\0".
  			 * IOW: newline is passed verbatim!
  			 * I take it to mean that it's syslogd's job
-@@ -1180,3 +1223,4 @@ int syslogd_main(int argc UNUSED_PARAM,
+@@ -1197,3 +1240,4 @@ int syslogd_main(int argc UNUSED_PARAM,
  #undef OPTION_STR
  #undef OPTION_DECL
  #undef OPTION_PARAM

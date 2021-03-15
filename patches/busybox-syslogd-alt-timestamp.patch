@@ -19,13 +19,13 @@ Index: busybox/sysklogd/syslogd.c
 --- busybox.orig/sysklogd/syslogd.c
 +++ busybox/sysklogd/syslogd.c
 @@ -62,6 +62,23 @@
- //config:	tuning section, which allows syslogd to receive log messages
- //config:	forwarded by systemd-journald.
+ //config:	support" has been selected which allows syslogd to
+ //config:	receive log messages forwarded by systemd-journald.
  //config:
 +//config:config FEATURE_ALTERNATE_LOG_FORMAT_0X963MA5GSW9PNK7A5GIY9DXB
 +//config:	bool "Alternate format for locally-generated log timestamps"
 +//config:	default n
-+//config:	depends on SYSLOGD
++//config:	depends on SYSLOGD && !FEATURE_SYSLOGD_PRECISE_TIMESTAMPS
 +//config:	help
 +//config:	If option -t is used to replace timestamps received by syslogd
 +//config:	from log sources with new locally-generated timestamps, this
@@ -42,7 +42,7 @@ Index: busybox/sysklogd/syslogd.c
  //config:config FEATURE_ROTATE_LOGFILE
  //config:	bool "Rotate message files"
  //config:	default y
-@@ -311,10 +328,17 @@ struct globals {
+@@ -318,10 +335,17 @@ struct globals {
  	/* ...then copy to parsebuf, escaping control chars */
  	/* (can grow x2 max) */
  	char parsebuf[MAX_READ*2];
@@ -52,7 +52,7 @@ Index: busybox/sysklogd/syslogd.c
 +	/* (growth by: 25 + 64 + 20 + delims = ~120) */
 +	char printbuf[MAX_READ*2 + 138];
 +#else
- 	/* ...then sprintf into printbuf, adding timestamp (15 chars),
+ 	/* ...then sprintf into printbuf, adding timestamp (15 or 19 chars),
  	 * host (64), fac.prio (20) to the message */
  	/* (growth by: 15 + 64 + 20 + delims = ~110) */
  	char printbuf[MAX_READ*2 + 128];
@@ -60,7 +60,7 @@ Index: busybox/sysklogd/syslogd.c
  };
  
  static const struct init_globals init_data = {
-@@ -852,6 +876,9 @@ static void parse_fac_prio_20(int pri, c
+@@ -859,6 +883,9 @@ static void parse_fac_prio_20(int pri, c
  static void timestamp_and_log(int pri, char *msg, int len)
  {
  	char *timestamp = NULL;
@@ -70,9 +70,9 @@ Index: busybox/sysklogd/syslogd.c
  	time_t now;
  
  	/* Jan 18 00:11:22 msg... */
-@@ -868,11 +895,31 @@ static void timestamp_and_log(int pri, c
+@@ -887,11 +914,31 @@ static void timestamp_and_log(int pri, c
  	}
- 
+ #else
  	if (!timestamp) {
 +#if ENABLE_FEATURE_ALTERNATE_LOG_FORMAT_0X963MA5GSW9PNK7A5GIY9DXB
 +		/* Will return the weird but constant date of one second
@@ -82,11 +82,11 @@ Index: busybox/sysklogd/syslogd.c
 +		 * hopelessly outdated installation! */
 +		now = time(0);
 +		(void)strftime(
-+			timestamp= timestamp_buf, sizeof timestamp_buf,
++			timestamp = timestamp_buf, sizeof timestamp_buf,
 +			/* 0         1         2       */
 +			/* 012345678901234567890123456 */
 +			/* 2015-01-18 00:11:22 +0000 host fac.prio msg... */
-+			"%04Y-%02m-%02d %02H:%02M:%02S %z",
++		"%04Y-%02m-%02d %02H:%02M:%02S %z",
 +			localtime(&now)
 +		);
 +	} else {
@@ -96,8 +96,8 @@ Index: busybox/sysklogd/syslogd.c
  		time(&now);
  		timestamp = ctime(&now) + 4; /* skip day of week */
  	}
- 
  	timestamp[15] = '\0';
+ #endif
 +#endif
  
  	if (option_mask32 & OPT_kmsg) {
