@@ -46,3 +46,53 @@ Index: busybox/init/init.c
  
  	/* Disable old entries */
  	for (a = G.init_action_list; a; a = a->next)
+@@ -1221,12 +1233,12 @@ int init_main(int argc UNUSED_PARAM, cha
+ //usage:#define init_full_usage "\n\n"
+ //usage:       "Init is the first process started during boot. It never exits."
+ //usage:	IF_FEATURE_USE_INITTAB(
+-//usage:   "\n""It (re)spawns children according to /etc/inittab."
++//usage:   "\n""It (re)spawns children according to " CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B "."
+ //usage:   "\n""Signals:"
+-//usage:   "\n""HUP: reload /etc/inittab"
++//usage:   "\n""HUP: reload " CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B ""
+ //usage:	)
+ //usage:	IF_NOT_FEATURE_USE_INITTAB(
+-//usage:   "\n""This version of init doesn't use /etc/inittab,"
++//usage:   "\n""This version of init doesn't use " CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B ","
+ //usage:   "\n""has fixed set of processed to run."
+ //usage:   "\n""Signals:"
+ //usage:	)
+@@ -1238,7 +1250,7 @@ int init_main(int argc UNUSED_PARAM, cha
+ //usage:	"This version of init is designed to be run only by the kernel.\n"
+ //usage:	"\n"
+ //usage:	"BusyBox init doesn't support multiple runlevels. The runlevels field of\n"
+-//usage:	"the /etc/inittab file is completely ignored by BusyBox init. If you want\n"
++//usage:	"the " CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B " file is completely ignored by BusyBox init. If you want\n"
+ //usage:	"runlevels, use sysvinit.\n"
+ //usage:	"\n"
+ //usage:	"BusyBox init works just fine without an inittab. If no inittab is found,\n"
+@@ -1254,7 +1266,7 @@ int init_main(int argc UNUSED_PARAM, cha
+ //usage:	"	tty3::askfirst:/bin/sh\n"
+ //usage:	"	tty4::askfirst:/bin/sh\n"
+ //usage:	"\n"
+-//usage:	"If you choose to use an /etc/inittab file, the inittab entry format is as follows:\n"
++//usage:	"If you choose to use an " CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B " file, the inittab entry format is as follows:\n"
+ //usage:	"\n"
+ //usage:	"	<id>:<runlevels>:<action>:<process>\n"
+ //usage:	"\n"
+@@ -1311,13 +1323,13 @@ int init_main(int argc UNUSED_PARAM, cha
+ //usage:	"\n"
+ //usage:	"		Unrecognized actions (like initdefault) will cause init to emit an\n"
+ //usage:	"		error message, and then go along with its business. All actions are\n"
+-//usage:	"		run in the order they appear in /etc/inittab.\n"
++//usage:	"		run in the order they appear in " CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B ".\n"
+ //usage:	"\n"
+ //usage:	"	<process>:\n"
+ //usage:	"\n"
+ //usage:	"		Specifies the process to be executed and its command line.\n"
+ //usage:	"\n"
+-//usage:	"Example /etc/inittab file:\n"
++//usage:	"Example " CONFIG_INITTAB_LOCATION_23J9JCQH4QWSFNCURF9A1L06B " file:\n"
+ //usage:	"\n"
+ //usage:	"	# This is run first except when booting in single-user mode\n"
+ //usage:	"	#\n"

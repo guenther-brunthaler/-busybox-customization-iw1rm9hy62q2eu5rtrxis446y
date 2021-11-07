@@ -7,7 +7,7 @@
 # below), put properly renamed versions of it into the staging directory as
 # well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2021.74.1
+# Version 2021.311
 # Copyright (c) 2019-2021 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
@@ -59,7 +59,7 @@ cd "$src"
 if test -d .git && expr x"$c1" : x'.*[0-9]' = 0 > /dev/null
 then
 	c1=$c1-`
-		git describe --tags HEAD \
+		git describe --tags --exclude '*/*' \
 		| sed 'y:/:-:; s/_BASE-/-p/; s/-g.*//; s/_/./g'
 	`
 fi
