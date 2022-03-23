@@ -7,7 +7,7 @@
 # below), put properly renamed versions of it into the staging directory as
 # well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2022.82
+# Version 2022.82.1
 # Copyright (c) 2019-2022 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
@@ -35,11 +35,13 @@ trap 'test $? = 0 || echo "\"$APP\" failed!" >& 2' 0
 
 generic=false
 create_symlinks=false
-while getopts gs opt
+not_rootfs_bin=false
+while getopts Rgs opt
 do
 	case $opt in
 		g) generic=true;;
 		s) create_symlinks=true;;
+		R) not_rootfs_bin=true;;
 		*) false || exit
 	esac
 done
@@ -90,6 +92,9 @@ done
 echo "Installing into staging directory" >& 2
 printf '%s\n' "$sdir"
 mkdir -- "$sdir"
+case $not_rootfs_bin in
+	false) mkdir -- "$sdir/bin"
+esac
 mkdir -- "$sdir/usr"
 mkdir -- "$sdir/usr/local"
 mkdir -- "$sdir/usr/local/bin"
@@ -97,8 +102,19 @@ cp -- "$BB_EXEC_BUILT" "$sdir/usr/local/bin/$BB_TARGET"
 ln -s -- "$BB_TARGET" "$sdir/usr/local/bin/$BB_LINK"
 if test -e "$BB_STATIC_EXEC_BUILT"
 then
-	cp -- "$BB_STATIC_EXEC_BUILT" "$sdir/usr/local/bin/$BB_STATIC_TARGET"
-	ln -s -- "$BB_STATIC_TARGET" "$sdir/usr/local/bin/$BB_STATIC_LINK"
+	case $not_rootfs_bin in
+		true)
+			cp -- "$BB_STATIC_EXEC_BUILT" \
+				"$sdir/usr/local/bin/$BB_STATIC_TARGET"
+			ln -s -- "$BB_STATIC_TARGET" \
+				"$sdir/usr/local/bin/$BB_STATIC_LINK"
+			;;
+		*)
+			cp -- "$BB_STATIC_EXEC_BUILT" \
+				"$sdir/bin/$BB_STATIC_TARGET"
+			ln -s -- "$BB_STATIC_TARGET" \
+				"$sdir/bin/$BB_STATIC_LINK"
+	esac
 fi
 if test -e "$BB_STANDALONE_EXEC_BUILT"
 then

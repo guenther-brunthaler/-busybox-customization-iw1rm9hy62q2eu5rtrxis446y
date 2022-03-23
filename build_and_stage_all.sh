@@ -10,6 +10,13 @@
 # local custom patches will be applied automatically. After the build has
 # finished, the patches will be removed again, and all (or at least most)
 # temporary files created by the build will be deleted.
+#
+# Version 2022.82
+#
+# Copyright (c) 2022 Guenther Brunthaler. All rights reserved.
+#
+# This script is free software.
+# Distribution is permitted under the terms of the GPLv3.
 
 target=busybox
 generic_prefix=all-
@@ -17,6 +24,16 @@ generic_prefix=all-
 set -e
 APP=${0##*/}
 trap 'test $? = 0 || echo "$APP failed!" >& 2' 0
+
+passthrough_options=
+while getopts gsR opt
+do
+	case $opt in
+		"?") false || exit;;
+		*) passthrough_options=$passthrough_options" -$opt"
+	esac
+done
+shift `expr $OPTIND - 1 || :`
 
 die() {
 	echo "$*" >& 2
@@ -35,8 +52,7 @@ test $# = 2
 mkabs "$1"; config=$result
 test -f "$config"
 case `basename -- "$config"` in
-	$generic_prefix*) generic=true;;
-	*) generic=false
+	$generic_prefix*) passthrough_options=$passthrough_options" -g";;
 esac
 mkabs "$2"; bdir=$result
 test -d "$bdir"
@@ -77,9 +93,7 @@ do
 	)
 done
 
-set ./stage_installation.sh
-$generic && set "$@" -g
-"$@" "$bdir"
+./stage_installation.sh $passthrough_options "$bdir"
 
 (
 	cd -- "$bdir"
