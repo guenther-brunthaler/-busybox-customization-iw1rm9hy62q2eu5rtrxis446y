@@ -7,8 +7,8 @@
 # below), put properly renamed versions of it into the staging directory as
 # well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2021.311
-# Copyright (c) 2019-2021 Günther Brunthaler. All rights reserved.
+# Version 2022.81
+# Copyright (c) 2019-2022 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
 # Distribution is permitted under the terms of the GPLv3.
@@ -33,10 +33,12 @@ APP=${0##*/}
 trap 'test $? = 0 || echo "\"$APP\" failed!" >& 2' 0
 
 generic=false
-while getopts g opt
+create_symlinks=false
+while getopts gs opt
 do
 	case $opt in
 		g) generic=true;;
+		s) create_symlinks=true;;
 		*) false || exit
 	esac
 done
@@ -128,6 +130,9 @@ mkdir -- "$sdir/usr/local/share/doc"
 mkdir -- "$sdir/usr/local/share/doc/$stage"
 gzip -9c < docs/BusyBox.txt \
 	> "$sdir/usr/local/share/doc/$stage/$BB_LINK.txt.gz"
+case $create_symlinks in
+	false) exit
+esac
 # Create symlinks for commands which are not otherwise available. This is
 # intelligent enough to recognize symlinks installed by a previous instance of
 # this script.
