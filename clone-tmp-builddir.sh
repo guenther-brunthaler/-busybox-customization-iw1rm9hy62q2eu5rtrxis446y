@@ -20,14 +20,14 @@
 # as the symlink pointing to it. Use this for cleaning up after you are done.
 # This expects the symlink to exist in the current directory.
 #
-# Version 2022.82
+# Version 2022.82.1
 #
 # Copyright (c) 2022 Guenther Brunthaler. All rights reserved.
 #
 # This source file is free software.
 # Distribution is permitted under the terms of the GPLv3.
 
-tmp_symlink='./bpath'
+tmp_symlink='./build'
 
 set -e
 APP=${0##*/}
@@ -66,6 +66,7 @@ else
 	echo "Repeat command with option -d in order to delete both."
 	echo
 	echo "Cloning the git source repository into the new directory..."
+	echo
 	set git clone -s
 	test "$specific_branch" && set "$@" -b "$specific_branch"
 	"$@" -- "$src" "$dst"

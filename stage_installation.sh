@@ -7,12 +7,13 @@
 # below), put properly renamed versions of it into the staging directory as
 # well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2022.81
+# Version 2022.82
 # Copyright (c) 2019-2022 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
 # Distribution is permitted under the terms of the GPLv3.
 
+package_name=busybox
 BB_EXEC_BUILT=busybox
 BB_STATIC_EXEC_BUILT=busybox.static
 BB_STANDALONE_EXEC_BUILT=busybox.standalone
@@ -55,14 +56,13 @@ then
 	echo "Usage: $APP <BusyBox_top-level_source_directory>" >& 2
 	false || exit
 fi
-c1=`basename -- "$src"`
-test -n "$c1"
+test -n "$package_name"
 cd "$src"
-if test -d .git && expr x"$c1" : x'.*[0-9]' = 0 > /dev/null
+if test -d .git && expr x"$package_name" : x'.*[0-9]' = 0 > /dev/null
 then
-	c1=$c1-`
-		git describe --tags --exclude '*/*' \
-		| sed 'y:/:-:; s/_BASE-/-p/; s/-g.*//; s/_/./g'
+	package_name=$package_name-`
+		git describe --tags \
+		| sed 's|.*/||'
 	`
 fi
 if $generic
@@ -76,7 +76,7 @@ c3=`stat -c %Y -- "$BB_EXEC_BUILT"`
 test -n "$c3"
 c3=`date -d "@$c3" +%Y%m%d`
 test -n "$c3"
-stage=$c1-$c2-$c3
+stage=$package_name-$c2-$c3
 sdir=$STAGES_SUBDIR
 test -d "$sdir" || mkdir -- "$sdir"
 sdir=$sdir/$stage
