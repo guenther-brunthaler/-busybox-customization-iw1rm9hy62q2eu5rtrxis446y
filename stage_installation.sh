@@ -7,8 +7,8 @@
 # below), put properly renamed versions of it into the staging directory as
 # well. Option "-g" makes the installation name non-host-specific.
 #
-# Version 2022.82.1
-# Copyright (c) 2019-2022 Günther Brunthaler. All rights reserved.
+# Version 2024.29
+# Copyright (c) 2019-2024 Günther Brunthaler. All rights reserved.
 #
 # This script is free software.
 # Distribution is permitted under the terms of the GPLv3.
@@ -51,7 +51,7 @@ if
 	{
 		test 1 = $# && src=$1 && test -n "$src" && test -d "$src"
 	} && false || {
-		test ! -d "$src"/.git || test ! -f "$src/$TAGFILE1" \
+		test ! -e "$src"/.git || test ! -f "$src/$TAGFILE1" \
 		|| test ! -f "$src/$TAGFILE2" || test ! -s "$src/$TAGFILE2"
 	}
 then
@@ -60,7 +60,7 @@ then
 fi
 test -n "$package_name"
 cd "$src"
-if test -d .git && expr x"$package_name" : x'.*[0-9]' = 0 > /dev/null
+if test -e .git && expr x"$package_name" : x'.*[0-9]' = 0 > /dev/null
 then
 	package_name=$package_name-`
 		git describe --tags \

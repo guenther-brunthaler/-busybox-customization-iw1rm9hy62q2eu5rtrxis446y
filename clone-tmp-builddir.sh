@@ -20,9 +20,9 @@
 # as the symlink pointing to it. Use this for cleaning up after you are done.
 # This expects the symlink to exist in the current directory.
 #
-# Version 2022.82.1
+# Version 2024.29
 #
-# Copyright (c) 2022 Guenther Brunthaler. All rights reserved.
+# Copyright (c) 2022-2024 Guenther Brunthaler. All rights reserved.
 #
 # This source file is free software.
 # Distribution is permitted under the terms of the GPLv3.
@@ -49,7 +49,7 @@ if $delete_builddir
 then
 	test -L "$tmp_symlink"
 	dst=`readlink -f -- "$tmp_symlink"`
-	test -d "$dst/.git"
+	test -e "$dst/.git"
 	echo "Removing temporary build directory '$dst'..."
 	rm -rf -- "$dst"
 	echo "Also removing the symlink to it ('$tmp_symlink')."
